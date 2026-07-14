@@ -169,7 +169,8 @@ Decide whether a later iteration should add the reference’s weekly weight-chan
 ### SHADCN-002 — Standardize forms with Field components
 
 - Priority: `P1`
-- Status: `backlog`
+- Status: `done`
+- Completed: Auth, profile/onboarding, settings, and daily-log forms now use the official Base UI-backed Field anatomy with React Hook Form error association, invalid states, semantic fieldsets, and the auth email separator.
 - Suggested branch: `refactor/shadcn-form-fields`
 - Current evidence:
   - `src/pages/Login.tsx`
@@ -195,7 +196,8 @@ Decide whether a later iteration should add the reference’s weekly weight-chan
 ### SHADCN-003 — Replace custom numeric suffix overlays with Input Group
 
 - Priority: `P1`
-- Status: `backlog`
+- Status: `done`
+- Completed: Profile targets and daily-log numeric controls now use the official Input Group composition with non-editable unit addons and group-level focus, invalid, and disabled styling while preserving numeric constraints and nullable values.
 - Suggested branch: combine with `refactor/shadcn-form-fields`
 - Current evidence:
   - `NumberField` in `src/components/profile/profile-form.tsx` absolutely positions units over inputs.
@@ -282,7 +284,8 @@ Decide whether a later iteration should add the reference’s weekly weight-chan
 ### SHADCN-008 — Replace the custom theme select wrapper
 
 - Priority: `P2`
-- Status: `backlog`
+- Status: `done`
+- Completed: Theme preference now uses the official Base UI-backed Select with controlled React Hook Form integration; light, dark, and system remain the only values and the theme is still applied only after a confirmed profile save.
 - Suggested branch: combine with `refactor/shadcn-form-fields`
 - Current evidence: `src/components/ui/select.tsx` is a hand-styled native `<select>` used by the profile theme preference.
 - shadcn target: [Select](https://ui.shadcn.com/docs/components/base/select) or [Native Select](https://ui.shadcn.com/docs/components/base/native-select)
@@ -329,7 +332,8 @@ Decide whether a later iteration should add the reference’s weekly weight-chan
 ### SHADCN-011 — Evaluate Item for history records
 
 - Priority: `P3`
-- Status: `backlog`
+- Status: `declined`
+- Decision: The current Card composition already preserves a dense responsive metric grid and clear edit/delete hierarchy; Item would exchange markup without a clear readability or maintenance improvement and would broaden the History change unnecessarily.
 - Suggested branch: address only while revising History
 - Current evidence: each entry in `src/pages/History.tsx` manually composes a Card with date, metrics, and edit/delete actions.
 - shadcn target: [Item](https://ui.shadcn.com/docs/components/base/item)
@@ -339,7 +343,8 @@ Decide whether a later iteration should add the reference’s weekly weight-chan
 ### SHADCN-012 — Evaluate Sidebar for desktop application navigation
 
 - Priority: `P3`
-- Status: `backlog`
+- Status: `declined`
+- Decision: The current shell has five stable routes and a product-specific mobile bottom navigation, with no requirement for collapsibility, off-canvas behavior, or navigation groups; Sidebar would add material abstraction and application-shell churn without a current product benefit.
 - Suggested branch: `refactor/application-shell`
 - Current evidence: `src/components/Layout.tsx` manually implements a fixed desktop aside, nav items, footer account state, and sign-out action.
 - shadcn target: [Sidebar](https://ui.shadcn.com/docs/components/radix/sidebar)
@@ -359,7 +364,7 @@ These are deliberate compositions or already align with the shadcn source-compon
 - `GoogleIcon`: a small brand SVG; Lucide does not provide brand icons, and adding a package for one icon is unnecessary.
 - `LoadingScreen`: retain the composition, but it may consume Spinner internally.
 - Sileo `Toaster` and action notifications: required project stack. Do not replace with Sonner or shadcn Toast.
-- Native `type="date"` input: retain for mobile date entry unless product requirements justify Calendar/Popover; stored values must remain exact `YYYY-MM-DD` dates.
+- Daily-log date picker: the product requirement now calls for the official shadcn Calendar/Popover composition; keep its conversion boundary calendar-date based so stored values remain exact `YYYY-MM-DD` dates.
 - Existing Badge, Button, Card, Combobox, Input, Label, Separator, Skeleton, and Textarea source primitives: normalize against upstream when their files are already touched, but do not rewrite them solely for parity.
 
 ## Recommended implementation order

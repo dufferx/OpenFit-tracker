@@ -6,8 +6,8 @@ import { z } from 'zod'
 import { useAuth } from '@/auth/AuthContext'
 import { AuthShell } from '@/components/auth/auth-shell'
 import { Button } from '@/components/ui/button'
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { getErrorMessage } from '@/lib/errors'
 
@@ -32,10 +32,12 @@ export function ForgotPassword() {
   })
 
   return <AuthShell title="Reset your password" description="Enter your email and we’ll send you a secure reset link.">
-    <form onSubmit={submit} className="grid gap-4" noValidate>
-      <div className="grid gap-2"><Label htmlFor="reset-email">Email</Label><Input id="reset-email" type="email" autoComplete="email" aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? 'reset-email-error' : undefined} {...register('email')} />{errors.email && <p id="reset-email-error" role="alert" className="text-sm text-destructive">{errors.email.message}</p>}</div>
+    <form onSubmit={submit} noValidate>
+      <FieldGroup className="gap-4">
+      <Field data-invalid={Boolean(errors.email)}><FieldLabel htmlFor="reset-email">Email</FieldLabel><Input id="reset-email" type="email" autoComplete="email" aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? 'reset-email-error' : undefined} {...register('email')} /><FieldError id="reset-email-error" errors={[errors.email]} /></Field>
       <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>{isSubmitting && <Spinner aria-hidden="true" />}{isSubmitting ? 'Sending…' : 'Send reset link'}</Button>
       <Link to="/login" className="text-center text-sm font-medium text-primary hover:underline">Back to sign in</Link>
+      </FieldGroup>
     </form>
   </AuthShell>
 }

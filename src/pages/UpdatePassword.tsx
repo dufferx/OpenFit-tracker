@@ -7,8 +7,8 @@ import { useAuth } from '@/auth/AuthContext'
 import { AuthShell } from '@/components/auth/auth-shell'
 import { LoadingScreen } from '@/components/common/loading-screen'
 import { Button } from '@/components/ui/button'
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { getErrorMessage } from '@/lib/errors'
 
@@ -44,10 +44,12 @@ export function UpdatePassword() {
   if (!user) return <AuthShell title="Reset link unavailable" description="This password reset link is invalid or has expired."><Link to="/forgot-password" className="text-sm font-medium text-primary hover:underline">Request a new reset link</Link></AuthShell>
 
   return <AuthShell title="Choose a new password" description="Use at least 8 characters for your new password.">
-    <form onSubmit={submit} className="grid gap-4" noValidate>
-      <div className="grid gap-2"><Label htmlFor="new-password">New password</Label><Input id="new-password" type="password" autoComplete="new-password" aria-invalid={Boolean(errors.password)} aria-describedby={errors.password ? 'new-password-error' : undefined} {...register('password')} />{errors.password && <p id="new-password-error" role="alert" className="text-sm text-destructive">{errors.password.message}</p>}</div>
-      <div className="grid gap-2"><Label htmlFor="confirm-new-password">Confirm new password</Label><Input id="confirm-new-password" type="password" autoComplete="new-password" aria-invalid={Boolean(errors.confirmPassword)} aria-describedby={errors.confirmPassword ? 'confirm-new-password-error' : undefined} {...register('confirmPassword')} />{errors.confirmPassword && <p id="confirm-new-password-error" role="alert" className="text-sm text-destructive">{errors.confirmPassword.message}</p>}</div>
+    <form onSubmit={submit} noValidate>
+      <FieldGroup className="gap-4">
+      <Field data-invalid={Boolean(errors.password)}><FieldLabel htmlFor="new-password">New password</FieldLabel><Input id="new-password" type="password" autoComplete="new-password" aria-invalid={Boolean(errors.password)} aria-describedby={errors.password ? 'new-password-error' : undefined} {...register('password')} /><FieldError id="new-password-error" errors={[errors.password]} /></Field>
+      <Field data-invalid={Boolean(errors.confirmPassword)}><FieldLabel htmlFor="confirm-new-password">Confirm new password</FieldLabel><Input id="confirm-new-password" type="password" autoComplete="new-password" aria-invalid={Boolean(errors.confirmPassword)} aria-describedby={errors.confirmPassword ? 'confirm-new-password-error' : undefined} {...register('confirmPassword')} /><FieldError id="confirm-new-password-error" errors={[errors.confirmPassword]} /></Field>
       <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>{isSubmitting && <Spinner aria-hidden="true" />}{isSubmitting ? 'Updating…' : 'Update password'}</Button>
+      </FieldGroup>
     </form>
   </AuthShell>
 }
