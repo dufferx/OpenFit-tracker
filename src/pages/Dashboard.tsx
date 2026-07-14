@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDailyLogs } from '@/hooks/use-daily-logs'
 import { useProfile } from '@/hooks/use-profile'
-import { formatShortCalendarDate, toLocalCalendarDate } from '@/lib/calendar-date'
+import { formatShortCalendarDate, todayInTimeZone } from '@/lib/calendar-date'
 import { averageLogValue, energyBalance, latestMeasurement, sortLogsChronologically } from '@/lib/daily-log-calculations'
 import { isProfileComplete } from '@/lib/profiles'
 import { formatNumber } from '@/lib/utils'
@@ -24,7 +24,7 @@ export function Dashboard() {
 
   const logs = logsQuery.data
   const profile = profileQuery.data
-  const todayLog = logs.find(log => log.logDate === toLocalCalendarDate())
+  const todayLog = logs.find(log => log.logDate === todayInTimeZone(profile.timezone))
   const recent = logs.slice(0, 7)
   const caloriesAverage = averageLogValue(recent, 'caloriesConsumed')
   const proteinAverage = averageLogValue(recent, 'proteinGrams')

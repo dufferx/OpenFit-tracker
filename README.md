@@ -62,7 +62,7 @@ If the Google OAuth consent screen has Publishing status set to **Testing**, add
 
 > `supabase/migrations/` is now the database source of truth. `supabase/schema.sql` is retained temporarily as a legacy reference snapshot and must not be applied in addition to the migration.
 
-Daily log dates are calendar dates (`date`, without a time zone). The UI builds and parses `YYYY-MM-DD` values in the browser’s local timezone and never parses them as UTC timestamps. The profile records the browser’s IANA timezone whenever settings or onboarding are saved, but daily-log boundaries still use the browser date. The existing database guard defines “today” in UTC, which can differ for users east of UTC near midnight.
+Daily log dates are calendar dates (`date`, without a time zone). Each profile stores a canonical IANA timezone, which controls the daily-log form’s definition of today, dashboard current-day selection, progress range boundaries, and database future-date validation. Calendar values remain exact `YYYY-MM-DD` strings and are never parsed as UTC timestamps. New profiles initialize a missing timezone from the browser during onboarding, with `UTC` as the documented fallback when the browser cannot provide a valid timezone. Existing valid profile timezones are preserved and can be reviewed in Settings.
 
 Profile targets and theme preference are loaded from `public.profiles`. The remote theme is applied after profile loading; `next-themes` retains its local value only to avoid a flash before that remote preference is available.
 

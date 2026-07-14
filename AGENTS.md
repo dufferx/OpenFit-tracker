@@ -23,7 +23,7 @@ Keep the product simple, responsive, and minimal. A user has at most one daily l
 
 Use React 19, strict TypeScript, Vite, React Router, Tailwind CSS, Recharts, Supabase, and Vite PWA. The shadcn preset is `b2oWFNd6u`: Vega, Neutral, Green charts, Lucide icons, Inter, and subtle menu accents. Preserve this visual language and existing semantic tokens.
 
-Reuse primitives from `src/components/ui/`. Prefer tokens such as `bg-background`, `bg-card`, `text-foreground`, `text-muted-foreground`, `border-border`, `bg-primary`, and `text-primary-foreground`; avoid hardcoded theme colors except for necessary data visualization. Use configured chart CSS variables with Recharts. Preserve accessible labels, focus states, keyboard navigation, mobile touch targets, and all theme modes.
+Use shadcn/ui source components whenever an appropriate component or established shadcn composition exists. Reuse primitives from `src/components/ui/` before creating custom UI, and add new shadcn components as source code using the selected preset rather than introducing a competing component library. Create focused custom composition only when shadcn does not cover the requirement. Prefer tokens such as `bg-background`, `bg-card`, `text-foreground`, `text-muted-foreground`, `border-border`, `bg-primary`, and `text-primary-foreground`; avoid hardcoded theme colors except for necessary data visualization. Use configured chart CSS variables with Recharts. Preserve accessible labels, focus states, keyboard navigation, mobile touch targets, and all theme modes.
 
 Use Sileo for meaningful action feedback; do not replace it with Sonner or notify on every minor interaction. Do not introduce Redux. Prefer small, focused components and hooks over speculative abstractions. Avoid `any`.
 

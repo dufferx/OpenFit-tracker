@@ -9,7 +9,7 @@ export type Database = {
           protein_target: number | null
           target_weight: number | null
           target_body_fat: number | null
-          timezone: string
+          timezone: string | null
           theme: 'light' | 'dark' | 'system'
           created_at: string
           updated_at: string
@@ -21,7 +21,7 @@ export type Database = {
           protein_target?: number | null
           target_weight?: number | null
           target_body_fat?: number | null
-          timezone?: string
+          timezone?: string | null
           theme?: 'light' | 'dark' | 'system'
           created_at?: string
           updated_at?: string
@@ -32,7 +32,7 @@ export type Database = {
           protein_target?: number | null
           target_weight?: number | null
           target_body_fat?: number | null
-          timezone?: string
+          timezone?: string | null
           theme?: 'light' | 'dark' | 'system'
           updated_at?: string
         }
