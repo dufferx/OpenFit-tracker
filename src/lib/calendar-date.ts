@@ -138,3 +138,26 @@ export function formatShortCalendarDate(value: string) {
   if (!date) return value
   return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(date)
 }
+
+export function formatDashboardCalendarDate(value: string) {
+  const date = calendarDateAsUtcDate(value)
+  if (!date) return value
+  return new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' }).format(date)
+}
+
+export function greetingInTimeZone(timeZone: string, instant = new Date()) {
+  if (!isValidTimeZone(timeZone)) throw new Error(`Invalid IANA timezone: ${timeZone || '(missing)'}`)
+  if (Number.isNaN(instant.getTime())) throw new Error('A valid instant is required to calculate a greeting.')
+
+  const hourPart = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(instant).find(part => part.type === 'hour')
+  const hour = Number(hourPart?.value)
+  if (!Number.isInteger(hour) || hour < 0 || hour > 23) throw new Error('Unable to determine the profile-local hour.')
+
+  if (hour < 12) return 'Good morning'
+  if (hour < 18) return 'Good afternoon'
+  return 'Good evening'
+}
