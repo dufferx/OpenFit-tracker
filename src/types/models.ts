@@ -31,7 +31,7 @@ export type Profile = {
   proteinTarget: number | null
   targetWeight: number | null
   targetBodyFat: number | null
-  timezone: string
+  timezone: string | null
   theme: ThemePreference
   createdAt: string
   updatedAt: string

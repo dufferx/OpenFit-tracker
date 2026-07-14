@@ -1,349 +1,194 @@
-You are working inside the OpenFit Tracker repository on the branch `feat/profile-settings`.
+You are working inside the OpenFit Tracker repository on the branch `fix/daily-log-timezone-boundary`.
 
 Before modifying anything:
 
 1. Read the root `AGENTS.md`.
-2. Confirm the current branch is exactly `feat/profile-settings`.
+2. Confirm the current branch is exactly `fix/daily-log-timezone-boundary`.
 3. Inspect:
 
-   * `package.json`
-   * the current authentication implementation
-   * the Supabase client
-   * `supabase/migrations/`
-   * the existing `profiles` schema
-   * the current settings page
-   * any local-storage profile or target implementation
-   * dashboard calculations that currently depend on calorie or protein targets
-   * theme-provider implementation
-4. Provide a concise implementation plan before editing.
-5. Do not commit or push.
+   * all Supabase migrations
+   * the `profiles` schema
+   * the daily-log future-date trigger
+   * profile onboarding and settings
+   * `src/lib/calendar-date.ts`
+   * daily-log form date validation
+   * dashboard “today” calculations
+   * progress date-range calculations
+   * history date formatting
+   * profile query and mutation code
+4. Confirm whether `profiles.timezone` exists in the current migration history.
+5. Provide a concise implementation plan before editing.
+6. Do not commit or push.
 
 ## Goal
 
-Connect user profile settings to the existing Supabase `public.profiles` table and add a clean onboarding flow for users who have not completed their essential targets.
+Make calendar-date ownership consistent across:
 
-Supabase must become the canonical source for user profile and fitness-target data.
+* the user profile
+* the browser application
+* daily-log form validation
+* dashboard “today”
+* date-range calculations
+* Supabase future-date validation
 
-Do not redesign the entire application in this task.
+The canonical timezone for authenticated user calendar dates must be `profiles.timezone`.
 
-## Current stack
+Do not implement dashboard-summary or progress-chart enhancements in this task.
 
-* React 19
-* TypeScript
-* Vite
-* React Router
-* Tailwind CSS
-* shadcn/ui source components
-* shadcn preset `b2oWFNd6u`
-* Sileo for notifications
-* TanStack Query
-* Supabase Auth and PostgreSQL
-* Recharts
-* PWA support
-* English code and UI
-* npm with `package-lock.json`
+## Current problem
 
-## Expected profile model
+The client currently constructs calendar dates using browser-local time, while the database future-date guard compares `log_date` against a UTC-derived current date.
 
-Verify the actual migration before implementing.
+This can reject a valid user-local “today” near midnight and can make dashboard/range calculations disagree with database validation.
 
-The `profiles` table conceptually includes:
+## Required behavior
 
-* `id`
-* `display_name`
-* `calorie_target`
-* `protein_target`
-* `target_weight`
-* `target_body_fat`
-* `timezone`
-* `theme`
-* `created_at`
-* `updated_at`
+### 1. Canonical timezone
 
-Do not assume every column exists without inspecting the applied migration.
-
-If a required column is missing, create a new timestamped migration. Do not edit an already-applied migration silently.
-
-## Required implementation
-
-### 1. Typed profile data layer
-
-Create a focused Supabase profile data-access module.
-
-It must support:
-
-* Fetch the authenticated user’s profile.
-* Update the authenticated user’s profile.
-* Upsert the profile safely if the trigger-created row is missing.
-* Never accept an arbitrary profile owner ID from user input.
-* Derive ownership from the authenticated user/session.
-* Use explicit selected columns where practical.
-* Throw clear errors instead of swallowing them.
-* Keep database row types separate from form values when useful.
-
-### 2. TanStack Query hooks
-
-Add focused hooks such as:
-
-* `useProfile`
-* `useUpdateProfile`
-
-Naming may differ if existing conventions suggest something better.
+Use `profiles.timezone` as the authenticated user’s canonical calendar timezone.
 
 Requirements:
 
-* Include the authenticated user ID in query keys.
-* Disable the query when no authenticated user exists.
-* Invalidate or update profile cache after mutations.
-* Avoid duplicate requests.
-* Reuse the existing QueryClient.
-* Do not add another global state system.
+* Use valid IANA timezone strings, for example:
 
-Suggested query key:
+  * `America/El_Salvador`
+  * `America/New_York`
+  * `Asia/Manila`
+* Do not use raw UTC offsets as persistent timezone identifiers.
+* Do not silently overwrite an existing valid profile timezone.
+* If a profile timezone is missing, initialize it from:
 
 ```ts
-["profile", userId]
+Intl.DateTimeFormat().resolvedOptions().timeZone
 ```
 
-### 3. Settings page
+* If the browser does not provide a valid timezone, use a documented safe fallback.
+* Keep the MVP interface in English.
 
-Connect the existing settings page to Supabase.
+### 2. Shared calendar-date helpers
 
-Editable fields:
+Create or improve focused date helpers that can:
 
-* Display name
-* Daily calorie target
-* Daily protein target
-* Target weight, optional
-* Target body-fat percentage, optional
-* Theme preference, if the existing schema and theme provider support it cleanly
+* Return today as `YYYY-MM-DD` in a supplied IANA timezone.
+* Validate whether a calendar date is in the future relative to a supplied timezone.
+* Add or subtract calendar days without UTC date-shift bugs.
+* Produce inclusive date-range boundaries.
+* Parse and format `YYYY-MM-DD` without using `new Date("YYYY-MM-DD")`.
+* Preserve calendar dates exactly when sent to Supabase.
 
-MVP rules:
+Use native `Intl` APIs unless an already installed dependency clearly provides a safer implementation.
 
-* Weight unit remains kilograms only.
-* Interface remains English only.
-* No social/privacy-sharing settings.
-* No workout settings.
-* No meal-level settings.
+Do not add a new date library without strong justification.
 
-Validation:
+### 3. Profile initialization
 
-* Display name may be optional unless current UX requires it.
-* Calorie target must be a reasonable positive integer.
-* Protein target must be a reasonable positive number.
-* Target weight must be nullable.
-* Target body fat must be nullable.
-* Empty optional numeric inputs must be stored as `null`.
-* Never store empty strings or `NaN` in numeric columns.
-* Prevent duplicate submissions.
-* Disable submit while saving.
-* Use existing shadcn form components.
-* Prefer React Hook Form and Zod if already installed or justified.
-* Use Sileo only after Supabase confirms success or failure.
+Ensure new or incomplete profiles receive a timezone safely.
 
-### 4. Onboarding flow
+Inspect the current onboarding and profile-update behavior.
 
-Implement a minimal onboarding experience for authenticated users whose essential profile settings are missing.
+Implement one of these approaches, preferring the least invasive:
 
-Essential fields:
+* Set the browser-detected timezone during onboarding/profile completion.
+* Upsert it when an authenticated profile is missing timezone.
+* Add a safe database default only if that default is semantically appropriate.
 
-* Daily calorie target
-* Daily protein target
+Do not fabricate `America/El_Salvador` for every user.
 
-Recommended onboarding fields:
+If a database migration is needed, create a new timestamped migration. Do not edit an already-applied migration.
 
-* Display name
-* Daily calorie target
-* Daily protein target
-* Target weight, optional
-* Target body-fat percentage, optional
+### 4. Daily-log form
 
-Requirements:
+Update daily-log validation so:
 
-* New authenticated users with incomplete essential targets should be redirected to onboarding.
-* Completed users should not repeatedly see onboarding.
-* Users must still be able to edit these values later in Settings.
-* Avoid redirect loops while auth and profile queries are loading.
-* Do not block password recovery or auth callback routes.
-* Show a clear loading state while checking profile completeness.
-* Do not fabricate default targets without user confirmation.
-* If the profile row is unexpectedly missing, recover using a safe upsert.
-* Add a route such as `/onboarding`.
-* Protect onboarding appropriately for authenticated users only.
+* “Today” is calculated using the profile timezone.
+* Future dates are rejected relative to the profile timezone.
+* The selected date remains a plain `YYYY-MM-DD` calendar date.
+* Loading the profile does not briefly permit or reject the wrong dates.
+* A missing or failed profile query is handled explicitly.
+* Existing create and update behavior remains unchanged.
+* Optional numeric values remain `null` when empty.
 
-Profile completeness should be determined from required target values, not merely from whether a row exists.
+### 5. Dashboard
 
-### 5. Dashboard integration
+Update only the date ownership required for correctness:
 
-Replace remaining local calorie and protein target sources with Supabase profile data.
+* Today’s log must be selected using today in the profile timezone.
+* Do not yet change weekly-summary logic.
+* Do not add new dashboard cards in this task.
+* Do not perform visual redesigns.
+
+### 6. Progress ranges
+
+Update only the date ownership required for correctness:
+
+* 7-, 30-, and 90-day boundaries must use the profile timezone.
+* Keep existing filters and charts otherwise unchanged.
+* Do not add “All time” in this task.
+* Do not change tooltip formatting in this task.
+
+### 7. Database future-date validation
+
+Inspect the existing future-date trigger or constraint.
+
+The database must validate a daily log against the owning user’s profile timezone.
 
 Requirements:
 
-* Calorie target comes from the authenticated user’s profile.
-* Protein target comes from the authenticated user’s profile.
-* Target weight and target body-fat values may be displayed where already supported.
-* Show honest loading or unavailable states while the profile is loading.
-* Do not fall back silently to demo values.
-* Keep daily-log values sourced from Supabase.
-* Keep calculations in focused utility functions where appropriate.
+* Derive the owner from `NEW.user_id`.
+* Read the owner’s timezone from `public.profiles`.
+* Convert the current timestamp into that timezone before deriving the current calendar date.
+* Reject `NEW.log_date` only when it is after the owner’s current calendar date.
+* Define safe behavior when the profile or timezone is missing.
+* Use an explicit safe `search_path`.
+* Preserve RLS and ownership guarantees.
+* Do not use frontend-provided timezone values for database enforcement.
+* Do not use service-role access from the frontend.
+* Create a new timestamped migration rather than modifying the applied initial migration.
+* Do not apply the migration remotely automatically.
 
-### 6. Progress and other consumers
+Review PostgreSQL timezone semantics carefully. Avoid comparing against UTC when the application uses user calendar dates.
 
-Inspect all consumers of profile targets.
+### 8. Existing records
 
-Update them so that:
+Do not rewrite existing daily logs.
 
-* Protein-target comparisons use the Supabase profile.
-* Calorie progress uses the Supabase profile.
-* Settings and dashboard show consistent values.
-* No stale local-storage target implementation remains active for authenticated users.
-* Theme handling remains stable.
+This fix concerns:
 
-### 7. Theme preference
+* validation
+* date ownership
+* range boundaries
+* current-day selection
 
-Only synchronize theme preference if it can be done without destabilizing the current theme provider.
+Existing `log_date` values must remain unchanged.
 
-If implemented:
-
-* Supported values must remain:
-
-  * `light`
-  * `dark`
-  * `system`
-* Update the visual theme immediately after save.
-* Avoid a flash or redirect loop.
-* Keep a local fallback for initial rendering if needed.
-* Document how remote and local preferences interact.
-
-If this introduces unnecessary complexity, leave theme persistence local for now and document that limitation.
-
-Do not compromise the existing light/dark/system behavior just to persist it remotely.
-
-### 8. Database and RLS
-
-Verify:
-
-* `profiles.id` references `auth.users.id`.
-* RLS is enabled.
-* Users can select and update only their own profile.
-* Insert/upsert behavior is safely supported for the authenticated owner.
-* The profile trigger still works.
-
-Do not use:
-
-* service-role key
-* secret key
-* database password
-* admin API
-* frontend-supplied arbitrary `user_id`
-
-If a schema or policy correction is required:
-
-1. Create a new timestamped migration.
-2. Clearly explain why.
-3. Do not apply it remotely automatically.
-4. Report the command the user should run after review.
-
-### 9. Loading, empty, and error states
+### 9. Error behavior
 
 Handle:
 
-* Auth session loading.
 * Profile loading.
-* Missing profile row.
-* Incomplete profile.
-* Failed profile fetch.
-* Failed update.
-* Retry where useful.
-* Signed-out state.
+* Missing timezone.
+* Invalid stored timezone.
+* Failed profile query.
+* Database rejection.
+* Browser timezone unavailable.
 
-Do not treat a network failure as an incomplete profile and redirect blindly to onboarding.
+Do not silently switch between browser time and UTC in different parts of the application.
 
-### 10. Cleanup
+### 10. Scope protection
 
-Remove or isolate obsolete authenticated-user profile storage, including:
+Do not implement:
 
-* localStorage target values
-* demo profile defaults
-* duplicated target constants
-* unused profile state
+* Weekly-summary corrections.
+* Burned-calorie dashboard card.
+* All-time range.
+* Mobile progress-filter redesign.
+* Tooltip formatting.
+* Protein target reference line.
+* Broad UI polish.
+* Bundle optimization.
+* Automated test infrastructure unless tests already exist.
 
-Do not remove unrelated local preferences without checking usage.
-
-Do not alter:
-
-* Sileo
-* shadcn preset
-* daily-log persistence
-* Google OAuth
-* password-reset flow
-* Recharts implementation
-* PWA configuration
-
-### 11. UX requirements
-
-Preserve the current design system.
-
-Use semantic tokens such as:
-
-* `bg-background`
-* `bg-card`
-* `text-foreground`
-* `text-muted-foreground`
-* `border-border`
-* `bg-primary`
-
-Maintain:
-
-* Mobile-friendly numeric inputs
-* Accessible labels
-* Visible validation messages
-* Keyboard navigation
-* Touch-friendly controls
-* Dark-mode compatibility
-
-Do not perform broad visual redesigns in this task. UI polish and known design bugs will be handled later in `feat/ui-polish-and-bug-fixes`.
-
-## Suggested domain type
-
-Reuse existing generated or project types where available. Otherwise use a model similar to:
-
-```ts
-type Profile = {
-  id: string
-  displayName: string | null
-  calorieTarget: number | null
-  proteinTarget: number | null
-  targetWeightKg: number | null
-  targetBodyFatPercentage: number | null
-  timezone: string
-  theme: "light" | "dark" | "system"
-  createdAt: string
-  updatedAt: string
-}
-```
-
-Do not duplicate types unnecessarily.
-
-## Manual validation checklist
-
-Test:
-
-1. Existing authenticated user with complete profile.
-2. Existing user edits calorie target.
-3. Existing user edits protein target.
-4. Optional target weight can be saved and cleared.
-5. Optional body-fat target can be saved and cleared.
-6. Refresh browser and confirm persistence.
-7. Sign out and sign back in.
-8. Dashboard shows persisted targets.
-9. New user with incomplete profile is sent to onboarding.
-10. Completing onboarding redirects to dashboard.
-11. Completed user does not return to onboarding.
-12. Profile query failure does not incorrectly trigger onboarding.
-13. Dark/light/system theme still works.
-14. Daily logs continue working.
-15. Google login continues working.
+Those belong to later features.
 
 ## Validation
 
@@ -354,37 +199,55 @@ npm run lint
 npm run build
 ```
 
-Also run existing tests if present.
+If an existing test runner is available, add focused tests for pure date helpers and run them.
 
-Review:
+Manually reason through or test these cases:
+
+1. User timezone `America/El_Salvador`.
+2. User timezone `Asia/Manila`.
+3. Browser timezone differs from profile timezone.
+4. UTC date differs from profile-local date.
+5. Local time immediately before midnight.
+6. Local time immediately after midnight.
+7. Today’s log is accepted.
+8. Tomorrow’s local calendar date is rejected.
+9. Existing past logs remain editable.
+10. Dashboard selects the profile-local current date.
+11. Progress ranges remain inclusive.
+12. Invalid stored timezone produces explicit safe behavior.
+
+## Database review
+
+At the end provide:
+
+1. The new migration filename.
+2. Exact description of the trigger behavior.
+3. Whether the existing `profiles.timezone` migration must be applied first.
+4. The command the user should run after reviewing the migration:
 
 ```bash
-git status
-git diff --stat
-git diff
+npx supabase db push
 ```
 
-Search for secrets and obsolete local target storage.
+Do not run that command yourself.
 
 ## Final report
 
-At the end provide:
+Provide:
 
 1. Concise summary.
 2. Files created.
 3. Files modified.
-4. Dependencies added, if any.
-5. Profile-query architecture.
-6. Onboarding behavior.
-7. Settings persistence behavior.
-8. Dashboard integration.
-9. Theme persistence decision.
-10. Local-storage code removed or retained.
-11. Database migration or policy changes, if any.
-12. Manual test checklist.
-13. Lint result.
-14. Build result.
-15. Remaining limitations.
-16. Human-review decisions required.
+4. Date-helper architecture.
+5. Profile-timezone initialization behavior.
+6. Client-side validation behavior.
+7. Database validation behavior.
+8. Migration created.
+9. Manual test checklist.
+10. Lint result.
+11. Build result.
+12. Remaining limitations.
+13. Human-review decisions required.
 
-Do not commit or push.
+Do not commit.
+Do not push.

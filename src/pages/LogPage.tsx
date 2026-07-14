@@ -10,8 +10,10 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { useDailyLogByDate, useUpsertDailyLog } from '@/hooks/use-daily-logs'
-import { isCalendarDate, isFutureCalendarDate, toLocalCalendarDate } from '@/lib/calendar-date'
+import { useProfile } from '@/hooks/use-profile'
+import { isCalendarDate, isFutureCalendarDate, todayInTimeZone } from '@/lib/calendar-date'
 import { getErrorMessage } from '@/lib/errors'
+import { isProfileComplete } from '@/lib/profiles'
 import type { DailyLogInput } from '@/types/models'
 
 type FormState = {
@@ -40,10 +42,20 @@ function parseOptionalNumber(value: string, label: string, minimum: number, maxi
 }
 
 export function LogPage() {
+  const profileQuery = useProfile()
+
+  if (profileQuery.isPending) return <><PageHeader eyebrow="Quick entry" title="Log your day" description="Loading your calendar settings…" /><div role="status" aria-label="Loading profile timezone"><Skeleton className="mx-auto h-96 max-w-3xl" /></div></>
+  if (profileQuery.isError) return <LogPageError message={profileQuery.error.message} retry={() => void profileQuery.refetch()} />
+  if (!isProfileComplete(profileQuery.data)) return <LogPageError message="A valid profile timezone and fitness targets are required before logging a day." retry={() => void profileQuery.refetch()} />
+
+  return <TimeZoneAwareLogForm timeZone={profileQuery.data.timezone} />
+}
+
+function TimeZoneAwareLogForm({ timeZone }: { timeZone: string }) {
   const [params] = useSearchParams()
-  const today = toLocalCalendarDate()
+  const today = todayInTimeZone(timeZone)
   const requestedDate = params.get('date')
-  const initialDate = requestedDate && isCalendarDate(requestedDate) && !isFutureCalendarDate(requestedDate, today) ? requestedDate : today
+  const initialDate = requestedDate && isCalendarDate(requestedDate) && !isFutureCalendarDate(requestedDate, timeZone) ? requestedDate : today
   const [date, setDate] = useState(initialDate)
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const existingQuery = useDailyLogByDate(date)
@@ -67,7 +79,7 @@ export function LogPage() {
     event.preventDefault()
     try {
       if (!isCalendarDate(date)) throw new Error('Select a valid date.')
-      if (isFutureCalendarDate(date, today)) throw new Error('Daily logs cannot be created for a future date.')
+      if (isFutureCalendarDate(date, timeZone)) throw new Error(`Daily logs cannot be created after today in ${timeZone}.`)
       const input: DailyLogInput = {
         logDate: date,
         caloriesConsumed: parseRequiredNumber(form.caloriesConsumed, 'Calories consumed', 15000),
@@ -104,4 +116,8 @@ export function LogPage() {
       </form>
     </CardContent></Card>
   </>
+}
+
+function LogPageError({ message, retry }: { message: string; retry: () => void }) {
+  return <><PageHeader eyebrow="Quick entry" title="Log your day" /><Card><CardContent className="space-y-4 text-center"><p role="alert" className="text-sm text-destructive">{message}</p><Button type="button" variant="outline" onClick={retry}>Try again</Button></CardContent></Card></>
 }

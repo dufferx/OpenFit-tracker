@@ -1,4 +1,5 @@
 import { requireSupabase } from '@/lib/supabase'
+import { isValidTimeZone } from '@/lib/calendar-date'
 import type { Database } from '@/types/database'
 import type { Profile, ProfileInput } from '@/types/models'
 
@@ -59,6 +60,13 @@ export async function upsertProfile(input: ProfileInput) {
   return mapProfile(data)
 }
 
-export function isProfileComplete(profile: Profile | null | undefined): profile is Profile & { calorieTarget: number; proteinTarget: number } {
-  return Boolean(profile && profile.calorieTarget && profile.calorieTarget > 0 && profile.proteinTarget && profile.proteinTarget > 0)
+export function isProfileComplete(profile: Profile | null | undefined): profile is Profile & { calorieTarget: number; proteinTarget: number; timezone: string } {
+  return Boolean(
+    profile
+    && profile.calorieTarget
+    && profile.calorieTarget > 0
+    && profile.proteinTarget
+    && profile.proteinTarget > 0
+    && isValidTimeZone(profile.timezone),
+  )
 }

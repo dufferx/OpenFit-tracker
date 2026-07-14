@@ -1,11 +1,13 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm, type UseFormRegisterReturn } from 'react-hook-form'
+import { Controller, useForm, type UseFormRegisterReturn } from 'react-hook-form'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
+import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from '@/components/ui/combobox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
+import { getBrowserTimeZone, getSupportedTimeZones, isValidTimeZone } from '@/lib/calendar-date'
 import type { Profile, ProfileInput } from '@/types/models'
 
 const requiredNumber = (label: string, minimum: number, maximum: number, integer = false) => z.string()
@@ -24,6 +26,7 @@ const profileFormSchema = z.object({
   proteinTarget: requiredNumber('Protein target', 1, 1000),
   targetWeight: optionalNumber('Target weight', 20, 400),
   targetBodyFat: optionalNumber('Target body fat', 1, 70),
+  timezone: z.string().trim().refine(isValidTimeZone, 'Enter a valid IANA timezone, such as America/New_York.'),
   theme: z.enum(['light', 'dark', 'system']),
 }).transform(values => ({
   displayName: values.displayName,
@@ -31,11 +34,13 @@ const profileFormSchema = z.object({
   proteinTarget: Number(values.proteinTarget),
   targetWeight: values.targetWeight === '' ? null : Number(values.targetWeight),
   targetBodyFat: values.targetBodyFat === '' ? null : Number(values.targetBodyFat),
+  timezone: values.timezone,
   theme: values.theme,
 }))
 
 type ProfileFormValues = z.input<typeof profileFormSchema>
 type ValidatedProfileFormValues = z.output<typeof profileFormSchema>
+type TimeZoneOption = { label: string; value: string }
 
 function formDefaults(profile: Profile | null, suggestedDisplayName = ''): ProfileFormValues {
   return {
@@ -44,6 +49,7 @@ function formDefaults(profile: Profile | null, suggestedDisplayName = ''): Profi
     proteinTarget: profile?.proteinTarget?.toString() ?? '',
     targetWeight: profile?.targetWeight?.toString() ?? '',
     targetBodyFat: profile?.targetBodyFat?.toString() ?? '',
+    timezone: isValidTimeZone(profile?.timezone) ? profile.timezone : getBrowserTimeZone(),
     theme: profile?.theme ?? 'system',
   }
 }
@@ -56,23 +62,28 @@ export function ProfileForm({ profile, suggestedDisplayName, submitLabel, pendin
   isPending: boolean
   onSubmit: (input: ProfileInput) => Promise<void>
 }) {
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<ProfileFormValues, unknown, ValidatedProfileFormValues>({
+  const timeZoneOptions = useMemo<TimeZoneOption[]>(() => getSupportedTimeZones(profile?.timezone).map(timeZone => ({ label: timeZone.replaceAll('_', ' '), value: timeZone })), [profile?.timezone])
+  const { control, register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<ProfileFormValues, unknown, ValidatedProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: formDefaults(profile, suggestedDisplayName),
   })
 
   useEffect(() => reset(formDefaults(profile, suggestedDisplayName)), [profile, reset, suggestedDisplayName])
 
-  const submit = handleSubmit(async values => {
-    const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
-    await onSubmit({ ...values, timezone: browserTimezone })
-  })
+  const submit = handleSubmit(onSubmit)
   const disabled = isPending || isSubmitting
 
   return <form onSubmit={submit} className="grid gap-5 xl:grid-cols-2" noValidate>
     <section className="grid content-start gap-5 rounded-xl border bg-card p-6 shadow-sm">
       <div><h2 className="font-semibold">Profile</h2><p className="mt-1 text-sm text-muted-foreground">How OpenFit addresses you and displays the interface.</p></div>
       <div className="grid gap-2"><Label htmlFor="display-name">Display name</Label><Input id="display-name" autoComplete="name" aria-invalid={Boolean(errors.displayName)} aria-describedby={errors.displayName ? 'display-name-error' : undefined} disabled={disabled} {...register('displayName')} />{errors.displayName && <p id="display-name-error" role="alert" className="text-sm text-destructive">{errors.displayName.message}</p>}</div>
+      <div className="grid gap-2"><Label htmlFor="timezone">Calendar timezone</Label><Controller name="timezone" control={control} render={({ field }) => {
+        const selected = timeZoneOptions.find(option => option.value === field.value) ?? null
+        return <Combobox items={timeZoneOptions} value={selected} onValueChange={option => field.onChange(option?.value ?? '')} itemToStringLabel={option => option.label} itemToStringValue={option => option.value} isItemEqualToValue={(option, value) => option.value === value.value} disabled={disabled} autoHighlight>
+          <ComboboxInput id="timezone" ref={field.ref} onBlur={field.onBlur} placeholder="Search timezones…" aria-invalid={Boolean(errors.timezone)} aria-describedby={errors.timezone ? 'timezone-error timezone-help' : 'timezone-help'} disabled={disabled} />
+          <ComboboxContent><ComboboxEmpty>No timezone found.</ComboboxEmpty><ComboboxList>{(option: TimeZoneOption) => <ComboboxItem key={option.value} value={option}>{option.label}</ComboboxItem>}</ComboboxList></ComboboxContent>
+        </Combobox>
+      }} /><p id="timezone-help" className="text-xs text-muted-foreground">Type a city or region to search IANA timezones. Missing values use this browser, with UTC as the safe fallback.</p>{errors.timezone && <p id="timezone-error" role="alert" className="text-sm text-destructive">{errors.timezone.message}</p>}</div>
       <div className="grid gap-2"><Label htmlFor="theme">Interface theme</Label><Select id="theme" disabled={disabled} {...register('theme')}><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></Select></div>
     </section>
     <section className="grid content-start gap-5 rounded-xl border bg-card p-6 shadow-sm">
