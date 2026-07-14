@@ -1,7 +1,31 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
-const url = import.meta.env.VITE_SUPABASE_URL
-const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim()
+const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim()
 
-export const isSupabaseConfigured = Boolean(url && key)
-export const supabase = isSupabaseConfigured ? createClient(url, key) : null
+const missingVariables = [
+  !supabaseUrl && 'VITE_SUPABASE_URL',
+  !supabasePublishableKey && 'VITE_SUPABASE_PUBLISHABLE_KEY',
+].filter((variable): variable is string => Boolean(variable))
+
+export const supabaseConfigurationError = missingVariables.length > 0
+  ? `Missing ${missingVariables.join(' and ')}. Copy .env.example to .env.local and add your Supabase project values.`
+  : null
+
+export const supabase: SupabaseClient | null = supabaseConfigurationError
+  ? null
+  : createClient(supabaseUrl, supabasePublishableKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    })
+
+export function requireSupabase() {
+  if (!supabase) {
+    throw new Error(supabaseConfigurationError ?? 'Supabase is not configured.')
+  }
+
+  return supabase
+}
