@@ -72,7 +72,8 @@ The repository must keep the selected `b2oWFNd6u` preset, semantic theme tokens,
 ### DASHBOARD-001 — Match the supplied OpenFit dashboard reference
 
 - Priority: `P1`
-- Status: `backlog`
+- Status: `done`
+- Completed: Dashboard now matches the supplied responsive hierarchy with a profile-local header, four compact daily KPI cards, a dominant measurement trend, and a seven-day summary while preserving real data, timezone calculations, accessibility, themes, and distinct empty states.
 - Suggested branch: `feat/dashboard-reference-redesign`
 - Reference source: [`OpenFit Dashboard.html`](./OpenFit%20Dashboard.html)
 - Rendered reference: [`docs/design-references/openfit-dashboard-reference.png`](./docs/design-references/openfit-dashboard-reference.png)
