@@ -1,9 +1,12 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
+import { CircleAlert } from 'lucide-react'
+import { useTheme } from 'next-themes'
 import { Toaster } from 'sileo'
 import { AuthProvider } from '@/auth/AuthContext'
 import { CompleteProfileRoute, ProfileThemeSync } from '@/auth/profile-routes'
 import { ProtectedRoute, PublicOnlyRoute } from '@/auth/route-guards'
 import { Layout } from '@/components/Layout'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Dashboard } from '@/pages/Dashboard'
 import { AuthCallback } from '@/pages/AuthCallback'
 import { ForgotPassword } from '@/pages/ForgotPassword'
@@ -19,12 +22,19 @@ import { supabaseConfigurationError } from '@/lib/supabase'
 
 function ConfigurationError() {
   return <main className="grid min-h-screen place-items-center bg-background p-6 text-foreground">
-    <div className="max-w-lg rounded-xl border border-destructive/40 bg-card p-6 shadow-sm">
-      <h1 className="text-lg font-semibold">Supabase configuration required</h1>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">{supabaseConfigurationError}</p>
-      {import.meta.env.DEV && <p className="mt-4 text-sm text-muted-foreground">Restart the Vite development server after updating .env.local.</p>}
-    </div>
+    <Alert variant="destructive" className="max-w-lg bg-card p-6 shadow-sm">
+      <CircleAlert aria-hidden="true" />
+      <AlertTitle>Supabase configuration required</AlertTitle>
+      <AlertDescription><p>{supabaseConfigurationError}</p>{import.meta.env.DEV && <p className="mt-3">Restart the Vite development server after updating .env.local.</p>}</AlertDescription>
+    </Alert>
   </main>
+}
+
+function AppToaster() {
+  const { resolvedTheme } = useTheme()
+  const theme = resolvedTheme === 'dark' ? 'dark' : 'light'
+
+  return <Toaster position="top-center" theme={theme} options={{ fill: 'var(--popover)' }} />
 }
 
 export default function App() {
@@ -51,5 +61,5 @@ export default function App() {
       </Route>
     </Route>
     <Route path="*" element={<Navigate to="/" replace />} />
-  </Routes></AuthProvider><Toaster position="top-center" /></BrowserRouter>
+  </Routes></AuthProvider><AppToaster /></BrowserRouter>
 }

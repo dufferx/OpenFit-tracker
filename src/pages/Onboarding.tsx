@@ -5,7 +5,8 @@ import { sileo } from 'sileo'
 import { useAuth } from '@/auth/AuthContext'
 import type { OnboardingLocationState } from '@/auth/profile-routes'
 import { ProfileForm } from '@/components/profile/profile-form'
-import { Button } from '@/components/ui/button'
+import { QueryErrorAlert } from '@/components/common/query-error-alert'
+import { Spinner } from '@/components/ui/spinner'
 import { useProfile, useUpdateProfile } from '@/hooks/use-profile'
 import { safeAuthDestination } from '@/lib/auth-redirect'
 import { getErrorMessage } from '@/lib/errors'
@@ -23,8 +24,8 @@ export function Onboarding() {
   const metadataDisplayName = user?.user_metadata.full_name
   const suggestedDisplayName = typeof metadataDisplayName === 'string' ? metadataDisplayName : user?.email?.split('@')[0] ?? ''
 
-  if (profileQuery.isPending) return <OnboardingShell><p className="text-center text-sm text-muted-foreground" role="status">Loading your profile…</p></OnboardingShell>
-  if (profileQuery.isError) return <OnboardingShell><div className="space-y-4 text-center"><p role="alert" className="text-sm text-destructive">{profileQuery.error.message}</p><Button variant="outline" onClick={() => void profileQuery.refetch()}>Try again</Button></div></OnboardingShell>
+  if (profileQuery.isPending) return <OnboardingShell><div className="flex items-center justify-center gap-2 text-sm text-muted-foreground" role="status"><Spinner aria-hidden="true" />Loading your profile…</div></OnboardingShell>
+  if (profileQuery.isError) return <OnboardingShell><QueryErrorAlert title="Unable to load your profile" message={profileQuery.error.message} retry={() => void profileQuery.refetch()} /></OnboardingShell>
   if (isProfileComplete(profileQuery.data)) return <Navigate to="/" replace />
 
   const save = async (input: ProfileInput) => {

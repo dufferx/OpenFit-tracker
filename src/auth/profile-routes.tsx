@@ -1,8 +1,8 @@
 import { useEffect, type ReactNode } from 'react'
 import { useTheme } from 'next-themes'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
 import { LoadingScreen } from '@/components/common/loading-screen'
+import { QueryErrorAlert } from '@/components/common/query-error-alert'
 import { useProfile } from '@/hooks/use-profile'
 import { isProfileComplete } from '@/lib/profiles'
 
@@ -36,5 +36,5 @@ export function CompleteProfileRoute() {
 }
 
 function ProfileLoadError({ message, retry }: { message: string; retry: () => void }) {
-  return <main className="grid min-h-screen place-items-center bg-background p-6 text-foreground"><div className="w-full max-w-md rounded-xl border bg-card p-6 text-center shadow-sm"><h1 className="text-lg font-semibold">Unable to load your profile</h1><p role="alert" className="mt-2 text-sm text-destructive">{message}</p><Button variant="outline" className="mt-5" onClick={retry}>Try again</Button></div></main>
+  return <main className="grid min-h-screen place-items-center bg-background p-6 text-foreground"><QueryErrorAlert className="max-w-md bg-card p-6 shadow-sm" title="Unable to load your profile" message={message} retry={retry} /></main>
 }

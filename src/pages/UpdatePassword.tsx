@@ -9,6 +9,7 @@ import { LoadingScreen } from '@/components/common/loading-screen'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Spinner } from '@/components/ui/spinner'
 import { getErrorMessage } from '@/lib/errors'
 
 const passwordSchema = z.object({
@@ -46,7 +47,7 @@ export function UpdatePassword() {
     <form onSubmit={submit} className="grid gap-4" noValidate>
       <div className="grid gap-2"><Label htmlFor="new-password">New password</Label><Input id="new-password" type="password" autoComplete="new-password" aria-invalid={Boolean(errors.password)} aria-describedby={errors.password ? 'new-password-error' : undefined} {...register('password')} />{errors.password && <p id="new-password-error" role="alert" className="text-sm text-destructive">{errors.password.message}</p>}</div>
       <div className="grid gap-2"><Label htmlFor="confirm-new-password">Confirm new password</Label><Input id="confirm-new-password" type="password" autoComplete="new-password" aria-invalid={Boolean(errors.confirmPassword)} aria-describedby={errors.confirmPassword ? 'confirm-new-password-error' : undefined} {...register('confirmPassword')} />{errors.confirmPassword && <p id="confirm-new-password-error" role="alert" className="text-sm text-destructive">{errors.confirmPassword.message}</p>}</div>
-      <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>{isSubmitting ? 'Updating…' : 'Update password'}</Button>
+      <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>{isSubmitting && <Spinner aria-hidden="true" />}{isSubmitting ? 'Updating…' : 'Update password'}</Button>
     </form>
   </AuthShell>
 }
