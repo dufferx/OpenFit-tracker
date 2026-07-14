@@ -1,14 +1,15 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { Toaster } from 'sileo'
 import { AuthProvider } from '@/auth/AuthContext'
+import { CompleteProfileRoute, ProfileThemeSync } from '@/auth/profile-routes'
 import { ProtectedRoute, PublicOnlyRoute } from '@/auth/route-guards'
 import { Layout } from '@/components/Layout'
-import { AppProvider } from '@/AppContext'
 import { Dashboard } from '@/pages/Dashboard'
 import { AuthCallback } from '@/pages/AuthCallback'
 import { ForgotPassword } from '@/pages/ForgotPassword'
 import { LogPage } from '@/pages/LogPage'
 import { Login } from '@/pages/Login'
+import { Onboarding } from '@/pages/Onboarding'
 import { Progress } from '@/pages/Progress'
 import { History } from '@/pages/History'
 import { Register } from '@/pages/Register'
@@ -36,12 +37,17 @@ export default function App() {
     <Route path="auth/callback" element={<AuthCallback />} />
     <Route path="update-password" element={<UpdatePassword />} />
     <Route element={<ProtectedRoute />}>
-      <Route element={<AppProvider><Layout /></AppProvider>}>
-        <Route index element={<Dashboard />} />
-        <Route path="log" element={<LogPage />} />
-        <Route path="progress" element={<Progress />} />
-        <Route path="history" element={<History />} />
-        <Route path="settings" element={<SettingsPage />} />
+      <Route element={<ProfileThemeSync><Outlet /></ProfileThemeSync>}>
+        <Route path="onboarding" element={<Onboarding />} />
+        <Route element={<CompleteProfileRoute />}>
+          <Route element={<Layout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="log" element={<LogPage />} />
+            <Route path="progress" element={<Progress />} />
+            <Route path="history" element={<History />} />
+            <Route path="settings" element={<SettingsPage />} />
+          </Route>
+        </Route>
       </Route>
     </Route>
     <Route path="*" element={<Navigate to="/" replace />} />

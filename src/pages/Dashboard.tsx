@@ -1,6 +1,5 @@
 import { ArrowDownRight, Flame, Percent, Scale, Target, TrendingDown } from 'lucide-react'
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
-import { useApp } from '@/AppContext'
 import { PageHeader } from '@/components/common/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -8,18 +7,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDailyLogs } from '@/hooks/use-daily-logs'
+import { useProfile } from '@/hooks/use-profile'
 import { formatShortCalendarDate, toLocalCalendarDate } from '@/lib/calendar-date'
 import { averageLogValue, energyBalance, latestMeasurement, sortLogsChronologically } from '@/lib/daily-log-calculations'
+import { isProfileComplete } from '@/lib/profiles'
 import { formatNumber } from '@/lib/utils'
 
 export function Dashboard() {
-  const { profile } = useApp()
   const logsQuery = useDailyLogs()
+  const profileQuery = useProfile()
 
-  if (logsQuery.isPending) return <DashboardLoading displayName={profile.displayName} />
-  if (logsQuery.isError) return <DashboardError message={logsQuery.error.message} retry={() => void logsQuery.refetch()} displayName={profile.displayName} />
+  if (logsQuery.isPending || profileQuery.isPending) return <DashboardLoading displayName={profileQuery.data?.displayName} />
+  if (logsQuery.isError) return <DashboardError message={logsQuery.error.message} retry={() => void logsQuery.refetch()} displayName={profileQuery.data?.displayName} />
+  if (profileQuery.isError) return <DashboardError message={profileQuery.error.message} retry={() => void profileQuery.refetch()} />
+  if (!isProfileComplete(profileQuery.data)) return <DashboardError message="Complete your profile before viewing target calculations." retry={() => void profileQuery.refetch()} />
 
   const logs = logsQuery.data
+  const profile = profileQuery.data
   const todayLog = logs.find(log => log.logDate === toLocalCalendarDate())
   const recent = logs.slice(0, 7)
   const caloriesAverage = averageLogValue(recent, 'caloriesConsumed')
@@ -73,12 +77,12 @@ export function Dashboard() {
   </>
 }
 
-function DashboardLoading({ displayName }: { displayName: string }) {
-  return <><PageHeader eyebrow="Daily overview" title={`Good evening, ${displayName}`} description="Loading your latest progress…" /><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5" role="status" aria-label="Loading dashboard"><Skeleton className="h-44" /><Skeleton className="h-44" /><Skeleton className="h-44" /><Skeleton className="h-44" /><Skeleton className="h-44" /></div></>
+function DashboardLoading({ displayName }: { displayName?: string }) {
+  return <><PageHeader eyebrow="Daily overview" title={`Good evening${displayName ? `, ${displayName}` : ''}`} description="Loading your latest progress…" /><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5" role="status" aria-label="Loading dashboard"><Skeleton className="h-44" /><Skeleton className="h-44" /><Skeleton className="h-44" /><Skeleton className="h-44" /><Skeleton className="h-44" /></div></>
 }
 
-function DashboardError({ message, retry, displayName }: { message: string; retry: () => void; displayName: string }) {
-  return <><PageHeader eyebrow="Daily overview" title={`Good evening, ${displayName}`} /><Card><CardContent className="space-y-4 text-center"><p className="text-sm text-destructive" role="alert">{message}</p><Button variant="outline" onClick={retry}>Try again</Button></CardContent></Card></>
+function DashboardError({ message, retry, displayName }: { message: string; retry: () => void; displayName?: string }) {
+  return <><PageHeader eyebrow="Daily overview" title={`Good evening${displayName ? `, ${displayName}` : ''}`} /><Card><CardContent className="space-y-4 text-center"><p className="text-sm text-destructive" role="alert">{message}</p><Button variant="outline" onClick={retry}>Try again</Button></CardContent></Card></>
 }
 
 function EmptyDashboard() {
