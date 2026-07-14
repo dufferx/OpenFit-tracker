@@ -1,0 +1,78 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '@/auth/AuthContext'
+import {
+  createDailyLog,
+  deleteDailyLog,
+  fetchDailyLogByDate,
+  fetchDailyLogs,
+  fetchDailyLogsByRange,
+  updateDailyLog,
+  upsertDailyLog,
+} from '@/lib/daily-logs'
+import type { DailyLogInput } from '@/types/models'
+
+export const dailyLogKeys = {
+  all: ['daily-logs'] as const,
+  user: (userId: string) => [...dailyLogKeys.all, userId] as const,
+  list: (userId: string) => [...dailyLogKeys.user(userId), 'list'] as const,
+  range: (userId: string, from: string, to: string) => [...dailyLogKeys.user(userId), 'range', from, to] as const,
+  date: (userId: string, logDate: string) => [...dailyLogKeys.user(userId), 'date', logDate] as const,
+}
+
+export function useDailyLogs() {
+  const { user, isLoading: isAuthLoading } = useAuth()
+  return useQuery({
+    queryKey: dailyLogKeys.list(user?.id ?? 'signed-out'),
+    queryFn: fetchDailyLogs,
+    enabled: !isAuthLoading && Boolean(user),
+  })
+}
+
+export function useDailyLogsByRange(from: string, to: string) {
+  const { user, isLoading: isAuthLoading } = useAuth()
+  return useQuery({
+    queryKey: dailyLogKeys.range(user?.id ?? 'signed-out', from, to),
+    queryFn: () => fetchDailyLogsByRange(from, to),
+    enabled: !isAuthLoading && Boolean(user) && Boolean(from) && Boolean(to),
+  })
+}
+
+export function useDailyLogByDate(logDate: string) {
+  const { user, isLoading: isAuthLoading } = useAuth()
+  return useQuery({
+    queryKey: dailyLogKeys.date(user?.id ?? 'signed-out', logDate),
+    queryFn: () => fetchDailyLogByDate(logDate),
+    enabled: !isAuthLoading && Boolean(user) && Boolean(logDate),
+  })
+}
+
+function useInvalidateDailyLogs() {
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+  return () => user
+    ? queryClient.invalidateQueries({ queryKey: dailyLogKeys.user(user.id) })
+    : Promise.resolve()
+}
+
+export function useCreateDailyLog() {
+  const invalidate = useInvalidateDailyLogs()
+  return useMutation({ mutationFn: createDailyLog, onSuccess: invalidate })
+}
+
+export function useUpdateDailyLog() {
+  const invalidate = useInvalidateDailyLogs()
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: DailyLogInput }) => updateDailyLog(id, input),
+    onSuccess: invalidate,
+  })
+}
+
+export function useUpsertDailyLog() {
+  const invalidate = useInvalidateDailyLogs()
+  return useMutation({ mutationFn: upsertDailyLog, onSuccess: invalidate })
+}
+
+export function useDeleteDailyLog() {
+  const invalidate = useInvalidateDailyLogs()
+  return useMutation({ mutationFn: deleteDailyLog, onSuccess: invalidate })
+}

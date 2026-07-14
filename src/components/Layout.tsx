@@ -39,7 +39,7 @@ export function Layout() {
       </div>
       <nav className="space-y-1.5">{items.map(({ to, label, icon: Icon }) => <NavLink key={to} to={to} className={({isActive}) => cn('flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors', isActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/70 hover:text-foreground')}><Icon size={18}/>{label}</NavLink>)}</nav>
       <div className="absolute bottom-6 left-6 right-6 space-y-3">
-        <div className="rounded-xl border bg-muted/60 p-4 text-xs leading-5 text-muted-foreground"><Badge variant="secondary" className="mb-2">Local data</Badge><p>Daily logs still stay in this browser during the authentication milestone.</p></div>
+        <div className="rounded-xl border bg-muted/60 p-4 text-xs leading-5 text-muted-foreground"><Badge variant="secondary" className="mb-2">Synced logs</Badge><p>Daily logs are protected by your account and synced with Supabase.</p></div>
         <p className="truncate px-1 text-xs text-muted-foreground" title={user?.email}>{user?.email}</p>
         <Button variant="outline" className="w-full" onClick={handleSignOut} disabled={isSigningOut}><LogOut aria-hidden="true" />{isSigningOut ? 'Signing out…' : 'Sign out'}</Button>
       </div>

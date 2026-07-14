@@ -4,7 +4,7 @@ A mobile-first personal fitness progress tracker built with React, TypeScript, V
 
 ## Current status
 
-Supabase authentication protects the application. Daily fitness logs and profile preferences still use browser `localStorage` temporarily and have not been migrated to database reads and writes.
+Supabase authentication protects the application, and daily fitness logs are stored in the user-owned `public.daily_logs` table through Row Level Security. Profile targets and interface preferences remain in browser `localStorage` temporarily.
 
 ## Run locally
 
@@ -62,7 +62,7 @@ If the Google OAuth consent screen has Publishing status set to **Testing**, add
 
 > `supabase/migrations/` is now the database source of truth. `supabase/schema.sql` is retained temporarily as a legacy reference snapshot and must not be applied in addition to the migration.
 
-Daily log dates are calendar dates (`date`, without a time zone). The initial database guard defines “today” in UTC when rejecting future dates, matching the current browser adapter’s ISO-date behavior. Revisit the product timezone policy before moving daily-log persistence to Supabase.
+Daily log dates are calendar dates (`date`, without a time zone). The UI builds and parses `YYYY-MM-DD` values in the browser’s local timezone and never parses them as UTC timestamps. The existing database guard defines “today” in UTC; this can differ from the browser date for users east of UTC near midnight and should be revisited when a profile timezone is introduced.
 
 ## Included
 
@@ -74,11 +74,11 @@ Daily log dates are calendar dates (`date`, without a time zone). The initial da
 - Sileo toast notifications
 - PWA manifest and service worker
 - Supabase SQL schema with Row Level Security
-- Demo seed data
+- Supabase-backed daily-log persistence
 
 ## Next development milestone
 
-- Replace local persistence with TanStack Query + Supabase
+- Persist profile targets and preferences in Supabase
 - Add onboarding and protected routes
 - Add proper dark-mode persistence
 - Add automated tests
