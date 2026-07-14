@@ -4,7 +4,7 @@ A mobile-first personal fitness progress tracker built with React, TypeScript, V
 
 ## Current status
 
-Supabase authentication protects the application, and daily fitness logs are stored in the user-owned `public.daily_logs` table through Row Level Security. Profile targets and interface preferences remain in browser `localStorage` temporarily.
+Supabase authentication protects the application. Daily fitness logs and profile targets are stored in user-owned Supabase tables through Row Level Security. Users without confirmed calorie and protein targets complete a short onboarding flow before entering the tracker.
 
 ## Run locally
 
@@ -62,7 +62,9 @@ If the Google OAuth consent screen has Publishing status set to **Testing**, add
 
 > `supabase/migrations/` is now the database source of truth. `supabase/schema.sql` is retained temporarily as a legacy reference snapshot and must not be applied in addition to the migration.
 
-Daily log dates are calendar dates (`date`, without a time zone). The UI builds and parses `YYYY-MM-DD` values in the browser’s local timezone and never parses them as UTC timestamps. The existing database guard defines “today” in UTC; this can differ from the browser date for users east of UTC near midnight and should be revisited when a profile timezone is introduced.
+Daily log dates are calendar dates (`date`, without a time zone). The UI builds and parses `YYYY-MM-DD` values in the browser’s local timezone and never parses them as UTC timestamps. The profile records the browser’s IANA timezone whenever settings or onboarding are saved, but daily-log boundaries still use the browser date. The existing database guard defines “today” in UTC, which can differ for users east of UTC near midnight.
+
+Profile targets and theme preference are loaded from `public.profiles`. The remote theme is applied after profile loading; `next-themes` retains its local value only to avoid a flash before that remote preference is available.
 
 ## Included
 
@@ -78,9 +80,6 @@ Daily log dates are calendar dates (`date`, without a time zone). The UI builds 
 
 ## Next development milestone
 
-- Persist profile targets and preferences in Supabase
-- Add onboarding and protected routes
-- Add proper dark-mode persistence
 - Add automated tests
 
 

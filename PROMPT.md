@@ -1,31 +1,30 @@
-You are working inside the OpenFit Tracker repository on the branch `feat/daily-logs-database`.
+You are working inside the OpenFit Tracker repository on the branch `feat/profile-settings`.
 
 Before modifying anything:
 
 1. Read the root `AGENTS.md`.
-2. Confirm the current branch is exactly `feat/daily-logs-database`.
+2. Confirm the current branch is exactly `feat/profile-settings`.
 3. Inspect:
 
    * `package.json`
-   * `src/`
-   * the router and layout structure
-   * the existing authentication implementation
-   * the current local/demo daily-log data layer
-   * `src/lib/supabase.ts`
+   * the current authentication implementation
+   * the Supabase client
    * `supabase/migrations/`
-   * `supabase/schema.sql`, if still present
-   * `.env.example`
-4. Review the current database schema for `daily_logs`.
-5. Provide a concise implementation plan before editing.
-6. Do not commit or push.
+   * the existing `profiles` schema
+   * the current settings page
+   * any local-storage profile or target implementation
+   * dashboard calculations that currently depend on calorie or protein targets
+   * theme-provider implementation
+4. Provide a concise implementation plan before editing.
+5. Do not commit or push.
 
 ## Goal
 
-Replace the current local or demo daily-log persistence with real Supabase-backed persistence while preserving the existing UI and user experience.
+Connect user profile settings to the existing Supabase `public.profiles` table and add a clean onboarding flow for users who have not completed their essential targets.
 
-This feature must cover only daily logs and the data plumbing needed by the existing dashboard, history, and progress views.
+Supabase must become the canonical source for user profile and fitness-target data.
 
-Do not implement profile-settings persistence in this task unless a minimal read-only fallback is strictly required for existing calculations.
+Do not redesign the entire application in this task.
 
 ## Current stack
 
@@ -37,256 +36,288 @@ Do not implement profile-settings persistence in this task unless a minimal read
 * shadcn/ui source components
 * shadcn preset `b2oWFNd6u`
 * Sileo for notifications
-* Recharts
+* TanStack Query
 * Supabase Auth and PostgreSQL
+* Recharts
+* PWA support
 * English code and UI
 * npm with `package-lock.json`
 
-## Database model
+## Expected profile model
 
-The remote database already has a `public.daily_logs` table created by migration.
+Verify the actual migration before implementing.
 
-Expected columns should be verified against the actual migration, but conceptually include:
+The `profiles` table conceptually includes:
 
 * `id`
-* `user_id`
-* `log_date`
-* `calories_consumed`
-* `protein_grams`
-* `total_calories_burned`
-* `weight_kg`
-* `body_fat_percentage`
-* `notes`
+* `display_name`
+* `calorie_target`
+* `protein_target`
+* `target_weight`
+* `target_body_fat`
+* `timezone`
+* `theme`
 * `created_at`
 * `updated_at`
 
-There must be one row per user per date.
+Do not assume every column exists without inspecting the applied migration.
 
-Do not invent schema changes unless the current migration is missing something required for this feature.
+If a required column is missing, create a new timestamped migration. Do not edit an already-applied migration silently.
 
 ## Required implementation
 
-### 1. Install and configure TanStack Query
+### 1. Typed profile data layer
 
-Use `@tanstack/react-query` for remote daily-log state.
+Create a focused Supabase profile data-access module.
 
-Requirements:
+It must support:
 
-* Add a single `QueryClient`.
-* Add `QueryClientProvider` at the appropriate application root.
-* Configure sensible defaults for this small personal app.
-* Avoid excessive refetching.
-* Do not add Redux or another global state library.
-* Do not add React Query Devtools unless explicitly justified and development-only.
-
-### 2. Create a typed daily-log data layer
-
-Implement a focused data-access module for Supabase daily logs.
-
-It should support:
-
-* Fetch all logs for the authenticated user, ordered by `log_date` descending.
-* Fetch logs within a date range.
-* Fetch one log by date.
-* Create a log.
-* Update a log.
-* Upsert a log by user and date where appropriate.
-* Delete a log.
-* Never accept or trust a caller-provided `user_id` when it can be derived from the authenticated session.
-* Use explicit selected columns instead of `select("*")` where practical.
+* Fetch the authenticated user’s profile.
+* Update the authenticated user’s profile.
+* Upsert the profile safely if the trigger-created row is missing.
+* Never accept an arbitrary profile owner ID from user input.
+* Derive ownership from the authenticated user/session.
+* Use explicit selected columns where practical.
 * Throw clear errors instead of swallowing them.
-* Keep database row types separate from UI/domain types if naming conversion is needed.
+* Keep database row types separate from form values when useful.
 
-### 3. Create query hooks
+### 2. TanStack Query hooks
 
 Add focused hooks such as:
 
-* `useDailyLogs`
-* `useDailyLogsByRange`
-* `useDailyLogByDate`
-* `useUpsertDailyLog`
-* `useDeleteDailyLog`
+* `useProfile`
+* `useUpdateProfile`
 
-Naming can differ if the existing project conventions suggest something better.
+Naming may differ if existing conventions suggest something better.
 
 Requirements:
 
 * Include the authenticated user ID in query keys.
-* Disable user-scoped queries when there is no authenticated user.
-* Invalidate all relevant daily-log queries after mutations.
-* Ensure dashboard, history, and progress views refresh after create, update, or delete.
-* Avoid duplicate network requests.
-* Do not use optimistic updates unless implemented safely and clearly.
+* Disable the query when no authenticated user exists.
+* Invalidate or update profile cache after mutations.
+* Avoid duplicate requests.
+* Reuse the existing QueryClient.
+* Do not add another global state system.
 
-### 4. Replace local persistence
-
-Replace `localStorage` or in-memory demo daily-log persistence as the source of truth for authenticated users.
-
-Requirements:
-
-* Supabase becomes the canonical data source.
-* Do not silently merge demo records into a real user account.
-* Existing demo seed data should not automatically appear for authenticated users.
-* New users must see honest empty states.
-* Remove or isolate obsolete daily-log local-storage code.
-* Keep unrelated local preferences, such as theme, if they are intentionally local.
-* Do not remove demo-only utilities that are still needed elsewhere without checking usages.
-
-### 5. Daily-log form
-
-Connect the existing daily-log form to Supabase.
-
-Requirements:
-
-* Preserve the current visual design.
-* Load an existing log when the selected date already has one.
-* Saving an existing date updates or upserts the row.
-* Saving a new date creates the row.
-* Prevent future dates.
-* Required:
-
-  * calories consumed
-  * protein grams
-  * total calories burned
-* Optional:
-
-  * weight
-  * body-fat percentage
-  * notes
-* Empty optional numeric inputs must be sent as `null`, not `0`, empty string, or `NaN`.
-* Numeric inputs must remain mobile-friendly.
-* Disable save while loading.
-* Prevent duplicate submissions.
-* Show Sileo success only after Supabase confirms the mutation.
-* Show meaningful Sileo errors.
-* Keep the user on the form after save unless the current UX clearly expects navigation.
-* Ensure the form resets or refreshes correctly when the selected date changes.
-
-### 6. History page
-
-Connect history to Supabase.
-
-Requirements:
-
-* Show authenticated user logs ordered newest first.
-* Add a proper loading skeleton or loading state.
-* Add an empty state for users with no records.
-* Preserve edit behavior.
-* Preserve delete behavior.
-* Deletion must require confirmation using the existing shadcn `AlertDialog` if available.
-* After deletion, refresh all affected views.
-* Show Sileo success and error messages.
-* Do not display another user’s data.
-
-### 7. Dashboard integration
-
-Replace dashboard demo calculations with real daily-log data.
-
-Requirements:
-
-* Today summary from today’s real log.
-* Recent records from Supabase.
-* Weekly averages based on actual available logs.
-* Latest non-null weight.
-* Latest non-null body-fat percentage.
-* Estimated calorie balance:
-  `calories_consumed - total_calories_burned`
-* Honest empty states when data does not exist.
-* Do not fabricate zero values where “no data” is more accurate.
-* Keep calculations in testable utility functions rather than embedding all logic in JSX.
-* Be explicit about local date handling.
-
-Do not connect profile targets to Supabase in this task if they are still local. Preserve the existing target source temporarily and document it as a limitation.
-
-### 8. Progress charts
-
-Connect the existing charts to real logs.
-
-Requirements:
-
-* Weight chart only uses rows with non-null weight.
-* Body-fat chart only uses rows with non-null body-fat percentage.
-* Calories chart uses consumed and burned totals.
-* Protein chart uses protein values.
-* Preserve the existing Recharts implementation and chart theme variables.
-* Sort chart data chronologically ascending.
-* Keep filters already present.
-* Add no-data states when a chart lacks enough values.
-* Do not render misleading lines across absent measurements.
-* Keep date parsing predictable and avoid UTC date-shift bugs.
-
-### 9. Date and timezone handling
-
-This is important.
-
-Requirements:
-
-* Treat `log_date` as a calendar date, not a UTC timestamp.
-* Avoid `new Date("YYYY-MM-DD")` where it can shift the date by timezone.
-* Add date parsing and formatting helpers if needed.
-* Use the browser’s local date for “today” unless the existing profile timezone system is already working.
-* Ensure the same selected date is sent to and read from Supabase as `YYYY-MM-DD`.
-* Document any remaining timezone limitation.
-
-### 10. Authentication and RLS assumptions
-
-* Reuse the existing authenticated session.
-* Do not bypass RLS.
-* Do not use a service-role or secret key.
-* Do not manually filter another user’s rows only in the frontend as a substitute for RLS.
-* Ensure queries behave correctly when the auth session is still loading.
-* Handle signed-out states gracefully.
-
-### 11. Error and loading behavior
-
-Implement clear states for:
-
-* Initial load.
-* Empty data.
-* Network failure.
-* Mutation failure.
-* Auth session unavailable.
-* Retry where useful.
-
-Do not blanket-catch errors and replace them with generic success behavior.
-
-### 12. Cleanup
-
-* Remove dead daily-log demo code after confirming it is unused.
-* Remove unused imports.
-* Do not rewrite unrelated authentication, theming, or PWA code.
-* Do not replace Sileo.
-* Do not alter the shadcn preset.
-* Do not modify the database migration unless a real blocker is found.
-* If a migration change is necessary, create a new timestamped migration. Never edit an already-applied migration silently.
-
-## Suggested query-key structure
-
-Use a predictable structure similar to:
+Suggested query key:
 
 ```ts
-["daily-logs", userId]
-["daily-logs", userId, "range", from, to]
-["daily-logs", userId, "date", logDate]
+["profile", userId]
 ```
 
-You may improve this if the project has a better established convention.
+### 3. Settings page
+
+Connect the existing settings page to Supabase.
+
+Editable fields:
+
+* Display name
+* Daily calorie target
+* Daily protein target
+* Target weight, optional
+* Target body-fat percentage, optional
+* Theme preference, if the existing schema and theme provider support it cleanly
+
+MVP rules:
+
+* Weight unit remains kilograms only.
+* Interface remains English only.
+* No social/privacy-sharing settings.
+* No workout settings.
+* No meal-level settings.
+
+Validation:
+
+* Display name may be optional unless current UX requires it.
+* Calorie target must be a reasonable positive integer.
+* Protein target must be a reasonable positive number.
+* Target weight must be nullable.
+* Target body fat must be nullable.
+* Empty optional numeric inputs must be stored as `null`.
+* Never store empty strings or `NaN` in numeric columns.
+* Prevent duplicate submissions.
+* Disable submit while saving.
+* Use existing shadcn form components.
+* Prefer React Hook Form and Zod if already installed or justified.
+* Use Sileo only after Supabase confirms success or failure.
+
+### 4. Onboarding flow
+
+Implement a minimal onboarding experience for authenticated users whose essential profile settings are missing.
+
+Essential fields:
+
+* Daily calorie target
+* Daily protein target
+
+Recommended onboarding fields:
+
+* Display name
+* Daily calorie target
+* Daily protein target
+* Target weight, optional
+* Target body-fat percentage, optional
+
+Requirements:
+
+* New authenticated users with incomplete essential targets should be redirected to onboarding.
+* Completed users should not repeatedly see onboarding.
+* Users must still be able to edit these values later in Settings.
+* Avoid redirect loops while auth and profile queries are loading.
+* Do not block password recovery or auth callback routes.
+* Show a clear loading state while checking profile completeness.
+* Do not fabricate default targets without user confirmation.
+* If the profile row is unexpectedly missing, recover using a safe upsert.
+* Add a route such as `/onboarding`.
+* Protect onboarding appropriately for authenticated users only.
+
+Profile completeness should be determined from required target values, not merely from whether a row exists.
+
+### 5. Dashboard integration
+
+Replace remaining local calorie and protein target sources with Supabase profile data.
+
+Requirements:
+
+* Calorie target comes from the authenticated user’s profile.
+* Protein target comes from the authenticated user’s profile.
+* Target weight and target body-fat values may be displayed where already supported.
+* Show honest loading or unavailable states while the profile is loading.
+* Do not fall back silently to demo values.
+* Keep daily-log values sourced from Supabase.
+* Keep calculations in focused utility functions where appropriate.
+
+### 6. Progress and other consumers
+
+Inspect all consumers of profile targets.
+
+Update them so that:
+
+* Protein-target comparisons use the Supabase profile.
+* Calorie progress uses the Supabase profile.
+* Settings and dashboard show consistent values.
+* No stale local-storage target implementation remains active for authenticated users.
+* Theme handling remains stable.
+
+### 7. Theme preference
+
+Only synchronize theme preference if it can be done without destabilizing the current theme provider.
+
+If implemented:
+
+* Supported values must remain:
+
+  * `light`
+  * `dark`
+  * `system`
+* Update the visual theme immediately after save.
+* Avoid a flash or redirect loop.
+* Keep a local fallback for initial rendering if needed.
+* Document how remote and local preferences interact.
+
+If this introduces unnecessary complexity, leave theme persistence local for now and document that limitation.
+
+Do not compromise the existing light/dark/system behavior just to persist it remotely.
+
+### 8. Database and RLS
+
+Verify:
+
+* `profiles.id` references `auth.users.id`.
+* RLS is enabled.
+* Users can select and update only their own profile.
+* Insert/upsert behavior is safely supported for the authenticated owner.
+* The profile trigger still works.
+
+Do not use:
+
+* service-role key
+* secret key
+* database password
+* admin API
+* frontend-supplied arbitrary `user_id`
+
+If a schema or policy correction is required:
+
+1. Create a new timestamped migration.
+2. Clearly explain why.
+3. Do not apply it remotely automatically.
+4. Report the command the user should run after review.
+
+### 9. Loading, empty, and error states
+
+Handle:
+
+* Auth session loading.
+* Profile loading.
+* Missing profile row.
+* Incomplete profile.
+* Failed profile fetch.
+* Failed update.
+* Retry where useful.
+* Signed-out state.
+
+Do not treat a network failure as an incomplete profile and redirect blindly to onboarding.
+
+### 10. Cleanup
+
+Remove or isolate obsolete authenticated-user profile storage, including:
+
+* localStorage target values
+* demo profile defaults
+* duplicated target constants
+* unused profile state
+
+Do not remove unrelated local preferences without checking usage.
+
+Do not alter:
+
+* Sileo
+* shadcn preset
+* daily-log persistence
+* Google OAuth
+* password-reset flow
+* Recharts implementation
+* PWA configuration
+
+### 11. UX requirements
+
+Preserve the current design system.
+
+Use semantic tokens such as:
+
+* `bg-background`
+* `bg-card`
+* `text-foreground`
+* `text-muted-foreground`
+* `border-border`
+* `bg-primary`
+
+Maintain:
+
+* Mobile-friendly numeric inputs
+* Accessible labels
+* Visible validation messages
+* Keyboard navigation
+* Touch-friendly controls
+* Dark-mode compatibility
+
+Do not perform broad visual redesigns in this task. UI polish and known design bugs will be handled later in `feat/ui-polish-and-bug-fixes`.
 
 ## Suggested domain type
 
-Use the existing type if one already exists. Otherwise use a typed model similar to:
+Reuse existing generated or project types where available. Otherwise use a model similar to:
 
 ```ts
-type DailyLog = {
+type Profile = {
   id: string
-  userId: string
-  logDate: string
-  caloriesConsumed: number
-  proteinGrams: number
-  totalCaloriesBurned: number
-  weightKg: number | null
-  bodyFatPercentage: number | null
-  notes: string | null
+  displayName: string | null
+  calorieTarget: number | null
+  proteinTarget: number | null
+  targetWeightKg: number | null
+  targetBodyFatPercentage: number | null
+  timezone: string
+  theme: "light" | "dark" | "system"
   createdAt: string
   updatedAt: string
 }
@@ -294,42 +325,46 @@ type DailyLog = {
 
 Do not duplicate types unnecessarily.
 
+## Manual validation checklist
+
+Test:
+
+1. Existing authenticated user with complete profile.
+2. Existing user edits calorie target.
+3. Existing user edits protein target.
+4. Optional target weight can be saved and cleared.
+5. Optional body-fat target can be saved and cleared.
+6. Refresh browser and confirm persistence.
+7. Sign out and sign back in.
+8. Dashboard shows persisted targets.
+9. New user with incomplete profile is sent to onboarding.
+10. Completing onboarding redirects to dashboard.
+11. Completed user does not return to onboarding.
+12. Profile query failure does not incorrectly trigger onboarding.
+13. Dark/light/system theme still works.
+14. Daily logs continue working.
+15. Google login continues working.
+
 ## Validation
 
-At minimum, run:
+Run:
 
 ```bash
 npm run lint
 npm run build
 ```
 
-Also run any existing tests if the repository already has them.
+Also run existing tests if present.
 
-Manually review:
+Review:
 
-* New user with no logs.
-* Create today’s log.
-* Refresh browser and confirm persistence.
-* Edit today’s log.
-* Create a past-date log.
-* Delete a log.
-* Dashboard refreshes.
-* History refreshes.
-* Progress charts refresh.
-* Sign out and sign in again.
-* Confirm records remain.
-* Confirm no demo records appear.
-* Confirm future dates are blocked.
+```bash
+git status
+git diff --stat
+git diff
+```
 
-## Security review
-
-Before finishing:
-
-* Search for real keys or secrets.
-* Confirm no service-role usage.
-* Confirm `.env.local` remains ignored.
-* Confirm all daily-log operations use the browser Supabase client and rely on authenticated RLS.
-* Confirm no query accepts arbitrary `user_id` from form input.
+Search for secrets and obsolete local target storage.
 
 ## Final report
 
@@ -338,16 +373,18 @@ At the end provide:
 1. Concise summary.
 2. Files created.
 3. Files modified.
-4. Dependencies added.
-5. Daily-log query architecture.
-6. How create/update/delete works.
-7. How dashboard/history/progress were connected.
-8. Demo/local-storage code removed or retained.
-9. Manual test checklist.
-10. Lint result.
-11. Build result.
-12. Remaining limitations.
-13. Any database or human-review decision needed.
+4. Dependencies added, if any.
+5. Profile-query architecture.
+6. Onboarding behavior.
+7. Settings persistence behavior.
+8. Dashboard integration.
+9. Theme persistence decision.
+10. Local-storage code removed or retained.
+11. Database migration or policy changes, if any.
+12. Manual test checklist.
+13. Lint result.
+14. Build result.
+15. Remaining limitations.
+16. Human-review decisions required.
 
 Do not commit or push.
-

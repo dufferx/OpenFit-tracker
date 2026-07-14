@@ -1,6 +1,43 @@
 export type Database = {
   public: {
     Tables: {
+      profiles: {
+        Row: {
+          id: string
+          display_name: string
+          calorie_target: number | null
+          protein_target: number | null
+          target_weight: number | null
+          target_body_fat: number | null
+          timezone: string
+          theme: 'light' | 'dark' | 'system'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          display_name?: string
+          calorie_target?: number | null
+          protein_target?: number | null
+          target_weight?: number | null
+          target_body_fat?: number | null
+          timezone?: string
+          theme?: 'light' | 'dark' | 'system'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          display_name?: string
+          calorie_target?: number | null
+          protein_target?: number | null
+          target_weight?: number | null
+          target_body_fat?: number | null
+          timezone?: string
+          theme?: 'light' | 'dark' | 'system'
+          updated_at?: string
+        }
+        Relationships: []
+      }
       daily_logs: {
         Row: {
           id: string
