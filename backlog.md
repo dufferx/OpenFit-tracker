@@ -1,8 +1,55 @@
-# shadcn/ui Adoption Backlog
+# Bugs and enhancements
 
-Last audited: 2026-07-14  
-Branch audited: `fix/daily-log-timezone-boundary`  
-Status: planning only; no replacements in this audit
+## BUG-001 — Make Sileo toast descriptions readable in dark mode
+
+- Type: `bug`
+- Priority: `P1`
+- Status: `backlog`
+- Suggested branch: `fix/sileo-dark-mode-contrast`
+- Current evidence:
+  - `src/main.tsx` imports the default `sileo/styles.css`.
+  - `src/App.tsx` renders the shared Sileo `Toaster`.
+  - Actions such as daily-log save errors and successes include a `description`, but the description text does not have sufficient contrast in dark mode.
+- Scope:
+  - Inspect Sileo's rendered elements and supported styling API before adding the smallest theme-aware override.
+  - Use existing semantic tokens such as `text-foreground`, `text-muted-foreground`, `bg-popover`, and `border-border` where Sileo permits them.
+  - Preserve Sileo; do not install or substitute Sonner or another toast system.
+  - Apply the fix centrally so success and error descriptions across Auth, Layout, Log, History, Settings, and profile flows remain consistent.
+- Acceptance criteria:
+  - Toast titles and descriptions are clearly readable in light, dark, and system themes.
+  - Description text meets WCAG AA contrast for normal text against the actual toast background.
+  - Success, error, and neutral toast styling remains visually distinguishable without hardcoded light-only colors.
+  - Toast announcements, timing, actions, and placement continue to work.
+  - Verify at mobile and desktop widths and run `npm run lint` and `npm run build`.
+
+## ENH-001 — Redirect to Home after saving a daily log
+
+- Type: `enhancement`
+- Priority: `P1`
+- Status: `backlog`
+- Suggested branch: `feat/log-save-home-redirect`
+- Current evidence: `src/pages/LogPage.tsx` waits for `saveLog.mutateAsync(input)` and shows a confirmed Sileo success toast, but remains on `/log` after both create and update operations.
+- Required behavior:
+  - After Supabase confirms a successful create or update, show the existing meaningful success toast and redirect to the Home/Dashboard route `/`.
+  - Use React Router navigation and replace the completed form entry in browser history so Back does not immediately reopen the just-submitted form.
+  - Preserve daily-log query invalidation so Home renders the newly created or updated values without a manual refresh.
+  - Do not navigate before the mutation resolves.
+  - On validation or Supabase failure, remain on the form, preserve the entered values, and show the existing Sileo error feedback.
+  - Keep the submit button disabled while pending and prevent duplicate submissions.
+- Acceptance criteria:
+  - Creating today's log redirects to `/` only after a confirmed save.
+  - Updating an existing log redirects to `/` only after a confirmed update.
+  - Dashboard cards, weekly summary, and charts reflect the mutation through the existing cache invalidation.
+  - A failed save does not redirect or clear the form.
+  - The success toast remains visible and readable after navigation in all theme modes.
+  - Browser Back does not return directly to the completed `/log` submission.
+  - Run `npm run lint` and `npm run build` and manually test create, edit, failure, and duplicate-submit cases.
+
+# shadcn/ui Adoption
+
+Last audited: 2026-07-14
+Branch audited: `fix/daily-log-timezone-boundary`
+Status: active backlog; dashboard/progress replacements completed on `feat/dashboard-and-progress`
 
 ## Goal
 
@@ -17,6 +64,82 @@ The repository must keep the selected `b2oWFNd6u` preset, semantic theme tokens,
 - `P2`: useful consolidation suitable for an adjacent feature.
 - `P3`: optional evaluation; implement only when the affected area is already changing.
 - Status values: `backlog`, `in-progress`, `done`, `declined`.
+
+## Feature design backlog
+
+### DASHBOARD-001 — Match the supplied OpenFit dashboard reference
+
+- Priority: `P1`
+- Status: `backlog`
+- Suggested branch: `feat/dashboard-reference-redesign`
+- Reference source: [`OpenFit Dashboard.html`](./OpenFit%20Dashboard.html)
+- Rendered reference: [`docs/design-references/openfit-dashboard-reference.png`](./docs/design-references/openfit-dashboard-reference.png)
+- Reference variants:
+  - Desktop `2a`, labeled “Refined grid — desktop”.
+  - Mobile `1c`, labeled “Refined grid”.
+- Context: the HTML is a bundled visual design artifact with inline demo values, fonts, colors, and SVG charts. It is a design reference, not production code and must not be copied into the React application.
+
+#### Goal
+
+Redesign the authenticated home/Dashboard view so it is visually the same as the supplied reference at equivalent desktop and mobile widths: match its information hierarchy, card proportions, grid, spacing rhythm, compact KPI presentation, weight-chart emphasis, and weekly-summary placement. “The same” means strong visual fidelity after translating the artifact into the existing React, shadcn/ui, Tailwind, Recharts, semantic-token, and responsive architecture. Data correctness, accessibility, and repository constraints take precedence over literal inline-style parity.
+
+#### Required layout mapping
+
+- Header:
+  - Show the profile-local formatted calendar date above the greeting.
+  - Keep the greeting and display name.
+  - Add a primary `Add daily log` action linked to `/log` on desktop; do not use the reference’s `Log food` wording because OpenFit records daily totals rather than meals.
+- Today KPI grid:
+  - Use four cards in one row on wide desktop and a two-by-two grid on mobile.
+  - Cards are Calories consumed, Protein, Calories burned, and Estimated balance.
+  - Show calorie and protein targets inline with their current values and retain accessible shadcn Progress bars.
+  - Missing today log values display `—`; legitimate logged zeroes display `0` with the correct unit.
+- Main content:
+  - Desktop uses approximately the reference’s `1.65fr 1fr` split: Weight trend on the left and Weekly summary on the right.
+  - Mobile stacks the Weight card above Weekly summary at full width.
+  - Keep the weight chart responsive, theme-safe, chronologically sorted, and backed by the existing shadcn Chart/Recharts integration.
+- Measurements:
+  - Preserve latest non-null weight, latest non-null body fat, target weight, and target body fat even though the reference emphasizes weight more strongly.
+  - Fit body-fat information into the summary or measurement composition without reintroducing two extra top-level KPI cards that break the reference’s four-card hierarchy.
+- Weekly summary:
+  - Preserve the current profile-timezone definition: today plus the preceding six calendar dates.
+  - Preserve “Average across X of 7 days” coverage.
+  - Preserve average calories, protein, burned calories, and estimated energy balance.
+  - Missing days are excluded rather than converted to zero; legitimate zero values remain data.
+
+#### Visual and component boundaries
+
+- Reuse existing shadcn Card, Button, Progress, Badge, Chart, Skeleton, and other applicable source components.
+- Preserve preset `b2oWFNd6u`, Inter, Lucide icons, green chart variables, semantic theme tokens, and light/dark/system themes.
+- Translate the reference’s hardcoded colors into tokens such as `bg-background`, `bg-card`, `border-border`, `text-foreground`, `text-muted-foreground`, `bg-primary`, `bg-accent`, and `var(--chart-*)`.
+- Do not add Plus Jakarta Sans or Space Grotesk from the reference.
+- Do not copy inline CSS, hardcoded demo values, static SVG chart points, or the reference’s custom application shell.
+- Preserve the existing desktop sidebar and mobile bottom navigation unless a separate application-shell feature explicitly changes them.
+- Keep usable touch targets, keyboard navigation, focus states, accessible chart text/tooltips, and a minimum supported width of 320 px.
+- Preserve distinct loading, error, no-log, no-measurement, one-measurement, and populated states.
+
+#### Product and data boundaries
+
+- Continue using real Supabase profile and daily-log data plus the shared timezone/range/chart helpers.
+- Do not change Auth, profile persistence, daily-log persistence, RLS, migrations, PWA behavior, Sileo, query keys, or mutation invalidation for this visual feature.
+- Do not introduce meal or exercise tracking. Label burned calories as a user-entered total, not automatically as “Exercise today”.
+- Do not classify balances as “mild deficit” or similar without an explicitly approved domain rule.
+- Do not show the reference’s “ideal for recomposition” claim; use neutral, factual copy derived directly from recorded values.
+- Do not add start-to-goal weight percentages or weekly weight-change badges until the product owner defines which measurement is the starting baseline and approves those calculations. The layout should remain visually faithful without fabricated values when that decision is absent.
+
+#### Acceptance criteria
+
+- At desktop width, the result closely matches reference `2a`: date/greeting/action header, four compact KPI cards, dominant weight card, and right-side weekly summary with comparable proportions and density.
+- At approximately 320–400 px, the result closely matches reference `1c`: two-by-two KPI grid followed by full-width Weight and Weekly summary cards with no horizontal overflow.
+- The design works in light, dark, and system themes without hardcoded reference colors leaking into production.
+- Existing timezone-correct calculations and Supabase values remain the only data source.
+- Values, units, target progress, empty states, zero handling, chart tooltips, and weekly coverage remain accurate.
+- No meal-level wording, unsupported health interpretation, demo data, or static chart data is introduced.
+- Run `npm run lint` and `npm run build`, review the complete diff, and manually compare desktop and mobile screenshots against the supplied reference before completion.
+
+#### Human-review decision
+
+Decide whether a later iteration should add the reference’s weekly weight-change badge and start-to-goal progress bar. That requires an explicit product definition for the starting weight baseline and is not authorized by this backlog item.
 
 ## Replacement backlog
 
@@ -84,7 +207,8 @@ The repository must keep the selected `b2oWFNd6u` preset, semantic theme tokens,
 ### SHADCN-004 — Adopt shadcn Chart wrappers for Recharts
 
 - Priority: `P1`
-- Status: `backlog`
+- Status: `done`
+- Completed: shared chart container, semantic configuration, localized tooltip, and legend source added under `src/components/ui/`.
 - Suggested branch: `feat/dashboard-and-progress`
 - Current evidence:
   - `src/pages/Dashboard.tsx` directly uses `ResponsiveContainer`, `Tooltip`, and `AreaChart`.
@@ -138,7 +262,8 @@ The repository must keep the selected `b2oWFNd6u` preset, semantic theme tokens,
 ### SHADCN-007 — Replace the simplified progress primitive with official Progress
 
 - Priority: `P1`
-- Status: `backlog`
+- Status: `done`
+- Completed: the dashboard now uses the Base UI-backed shadcn Progress anatomy and accessible value semantics.
 - Suggested branch: combine with `feat/dashboard-and-progress`
 - Current evidence: `src/components/ui/progress.tsx` renders two plain `div` elements and does not expose the official shadcn/Base UI progress anatomy or progressbar semantics.
 - shadcn target: [Progress](https://ui.shadcn.com/docs/components/base/progress)
@@ -165,7 +290,8 @@ The repository must keep the selected `b2oWFNd6u` preset, semantic theme tokens,
 ### SHADCN-009 — Use Toggle Group for progress range selection
 
 - Priority: `P2`
-- Status: `backlog`
+- Status: `done`
+- Completed: the four progress ranges now use a Base UI-backed shadcn Toggle Group that remains visible on mobile.
 - Suggested branch: `feat/dashboard-and-progress`
 - Current evidence: `src/pages/Progress.tsx` maps independent Buttons for the 7-, 30-, and 90-day single-selection state.
 - shadcn target: [Toggle Group](https://ui.shadcn.com/docs/components/base/toggle-group)
