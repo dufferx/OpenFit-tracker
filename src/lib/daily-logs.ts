@@ -7,6 +7,7 @@ type DailyLogInsert = Database['public']['Tables']['daily_logs']['Insert']
 type DailyLogUpdate = Database['public']['Tables']['daily_logs']['Update']
 
 const DAILY_LOG_COLUMNS = 'id,user_id,log_date,calories_consumed,protein_grams,total_calories_burned,weight_kg,body_fat_percentage,notes,created_at,updated_at'
+export const DAILY_LOG_RESULT_LIMIT = 1000
 
 function mapDailyLog(row: DailyLogRow): DailyLog {
   return {
@@ -63,6 +64,7 @@ export async function fetchDailyLogs() {
     .select(DAILY_LOG_COLUMNS)
     .eq('user_id', userId)
     .order('log_date', { ascending: false })
+    .limit(DAILY_LOG_RESULT_LIMIT)
   if (error) throw new Error(`Unable to load daily logs: ${error.message}`)
   return data.map(mapDailyLog)
 }

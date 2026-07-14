@@ -66,6 +66,8 @@ Daily log dates are calendar dates (`date`, without a time zone). Each profile s
 
 Profile targets and theme preference are loaded from `public.profiles`. The remote theme is applied after profile loading; `next-themes` retains its local value only to avoid a flash before that remote preference is available.
 
+Progress uses profile-timezone calendar ranges for the last 7, 30, and 90 days. The All time view reuses the current-user daily-log query and displays the 1,000 most recent records at most, matching the Supabase Data API `max_rows` limit in `supabase/config.toml`. Pagination is intentionally deferred for the MVP, so an account with more than 1,000 logs should not treat this view as a complete lifetime history.
+
 ## Included
 
 - Responsive dashboard

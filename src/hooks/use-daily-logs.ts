@@ -9,12 +9,14 @@ import {
   updateDailyLog,
   upsertDailyLog,
 } from '@/lib/daily-logs'
+import type { InclusiveDateRange } from '@/lib/calendar-date'
+import type { ProgressRange } from '@/lib/progress-data'
 import type { DailyLogInput } from '@/types/models'
 
 export const dailyLogKeys = {
   all: ['daily-logs'] as const,
   user: (userId: string) => [...dailyLogKeys.all, userId] as const,
-  list: (userId: string) => [...dailyLogKeys.user(userId), 'list'] as const,
+  allTime: (userId: string) => [...dailyLogKeys.user(userId), 'all'] as const,
   range: (userId: string, from: string, to: string) => [...dailyLogKeys.user(userId), 'range', from, to] as const,
   date: (userId: string, logDate: string) => [...dailyLogKeys.user(userId), 'date', logDate] as const,
 }
@@ -22,9 +24,23 @@ export const dailyLogKeys = {
 export function useDailyLogs() {
   const { user, isLoading: isAuthLoading } = useAuth()
   return useQuery({
-    queryKey: dailyLogKeys.list(user?.id ?? 'signed-out'),
+    queryKey: dailyLogKeys.allTime(user?.id ?? 'signed-out'),
     queryFn: fetchDailyLogs,
     enabled: !isAuthLoading && Boolean(user),
+  })
+}
+
+export function useProgressDailyLogs(range: ProgressRange, boundaries: InclusiveDateRange | null) {
+  const { user, isLoading: isAuthLoading } = useAuth()
+  const userId = user?.id ?? 'signed-out'
+  const isAllTime = range === 'all'
+  const from = boundaries?.from ?? ''
+  const to = boundaries?.to ?? ''
+
+  return useQuery({
+    queryKey: isAllTime ? dailyLogKeys.allTime(userId) : dailyLogKeys.range(userId, from, to),
+    queryFn: isAllTime ? fetchDailyLogs : () => fetchDailyLogsByRange(from, to),
+    enabled: !isAuthLoading && Boolean(user) && (isAllTime || Boolean(from && to)),
   })
 }
 
