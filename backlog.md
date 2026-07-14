@@ -4,7 +4,8 @@
 
 - Type: `bug`
 - Priority: `P1`
-- Status: `backlog`
+- Status: `done`
+- Completed: Sileo now follows the resolved application theme, uses the semantic popover surface, and renders descriptions with `popover-foreground` contrast from one central override.
 - Suggested branch: `fix/sileo-dark-mode-contrast`
 - Current evidence:
   - `src/main.tsx` imports the default `sileo/styles.css`.
@@ -26,7 +27,8 @@
 
 - Type: `enhancement`
 - Priority: `P1`
-- Status: `backlog`
+- Status: `done`
+- Completed: confirmed creates and updates keep the existing success toast and invalidation, then replace `/log` with `/` in browser history.
 - Suggested branch: `feat/log-save-home-redirect`
 - Current evidence: `src/pages/LogPage.tsx` waits for `saveLog.mutateAsync(input)` and shows a confirmed Sileo success toast, but remains on `/log` after both create and update operations.
 - Required behavior:
@@ -48,7 +50,7 @@
 # shadcn/ui Adoption
 
 Last audited: 2026-07-14
-Branch audited: `fix/daily-log-timezone-boundary`
+Branch audited: `feat/ui-polish-and-bug-fixes`
 Status: active backlog; dashboard/progress replacements completed on `feat/dashboard-and-progress`
 
 ## Goal
@@ -146,7 +148,8 @@ Decide whether a later iteration should add the reference’s weekly weight-chan
 ### SHADCN-001 — Replace browser delete confirmation with Alert Dialog
 
 - Priority: `P0`
-- Status: `backlog`
+- Status: `done`
+- Completed: History deletion now uses a controlled Base UI-backed Alert Dialog with date-specific copy, focus management, and disabled pending actions.
 - Suggested branch: `fix/history-delete-confirmation`
 - Current evidence: `src/pages/History.tsx` calls `window.confirm()` before deleting a daily log.
 - shadcn target: [Alert Dialog](https://ui.shadcn.com/docs/components/base/alert-dialog)
@@ -228,7 +231,8 @@ Decide whether a later iteration should add the reference’s weekly weight-chan
 ### SHADCN-005 — Standardize empty states
 
 - Priority: `P1`
-- Status: `backlog`
+- Status: `done`
+- Completed: dashboard, progress, compact chart, and history empty states now share the shadcn Empty anatomy while retaining distinct messages and actions.
 - Suggested branch: `feat/ui-polish-and-bug-fixes`
 - Current evidence:
   - `EmptyDashboard` and `ChartEmpty` in `src/pages/Dashboard.tsx` use custom card/dashed-border markup.
@@ -245,7 +249,8 @@ Decide whether a later iteration should add the reference’s weekly weight-chan
 ### SHADCN-006 — Standardize recoverable error callouts
 
 - Priority: `P1`
-- Status: `backlog`
+- Status: `done`
+- Completed: query, route, Auth callback, and configuration failures now use shared shadcn Alert composition with retry actions where recovery is available.
 - Suggested branch: `feat/ui-polish-and-bug-fixes`
 - Current evidence:
   - Query errors are repeated as destructive paragraphs inside cards across Dashboard, Progress, History, Settings, LogPage, and Onboarding.
@@ -305,7 +310,8 @@ Decide whether a later iteration should add the reference’s weekly weight-chan
 ### SHADCN-010 — Use Spinner for indeterminate loading actions
 
 - Priority: `P2`
-- Status: `backlog`
+- Status: `done`
+- Completed: full-screen and onboarding loading plus mutation buttons now use the shared Spinner while preserving visible pending labels and Skeleton placeholders.
 - Suggested branch: `feat/ui-polish-and-bug-fixes`
 - Current evidence:
   - Submit buttons communicate pending state only by replacing text.

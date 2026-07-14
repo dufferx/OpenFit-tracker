@@ -1,13 +1,15 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Save } from 'lucide-react'
 import { sileo } from 'sileo'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '@/components/common/page-header'
+import { QueryErrorAlert } from '@/components/common/query-error-alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { useDailyLogByDate, useUpsertDailyLog } from '@/hooks/use-daily-logs'
 import { useProfile } from '@/hooks/use-profile'
@@ -53,6 +55,7 @@ export function LogPage() {
 
 function TimeZoneAwareLogForm({ timeZone }: { timeZone: string }) {
   const [params] = useSearchParams()
+  const navigate = useNavigate()
   const today = todayInTimeZone(timeZone)
   const requestedDate = params.get('date')
   const initialDate = requestedDate && isCalendarDate(requestedDate) && !isFutureCalendarDate(requestedDate, timeZone) ? requestedDate : today
@@ -61,6 +64,7 @@ function TimeZoneAwareLogForm({ timeZone }: { timeZone: string }) {
   const existingQuery = useDailyLogByDate(date)
   const saveLog = useUpsertDailyLog()
   const existing = existingQuery.data
+  const saveInFlight = useRef(false)
 
   useEffect(() => {
     setForm(existing ? {
@@ -77,6 +81,8 @@ function TimeZoneAwareLogForm({ timeZone }: { timeZone: string }) {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
+    if (saveInFlight.current) return
+    saveInFlight.current = true
     try {
       if (!isCalendarDate(date)) throw new Error('Select a valid date.')
       if (isFutureCalendarDate(date, timeZone)) throw new Error(`Daily logs cannot be created after today in ${timeZone}.`)
@@ -91,8 +97,11 @@ function TimeZoneAwareLogForm({ timeZone }: { timeZone: string }) {
       }
       await saveLog.mutateAsync(input)
       sileo.success({ title: existing ? 'Daily log updated' : 'Daily log saved', description: 'Your progress has been synced.' })
+      navigate('/', { replace: true })
     } catch (error) {
       sileo.error({ title: 'Unable to save daily log', description: getErrorMessage(error) })
+    } finally {
+      saveInFlight.current = false
     }
   }
 
@@ -102,7 +111,7 @@ function TimeZoneAwareLogForm({ timeZone }: { timeZone: string }) {
     <Card className="mx-auto max-w-3xl"><CardContent>
       <form onSubmit={submit} className="grid gap-5 sm:grid-cols-2">
         <div className="grid gap-2 sm:col-span-2"><Label htmlFor="log-date">Date</Label><Input id="log-date" type="date" value={date} max={today} onChange={event => setDate(event.target.value)} disabled={saveLog.isPending} /></div>
-        {existingQuery.isPending ? <div className="grid gap-4 sm:col-span-2" role="status" aria-label="Loading daily log"><Skeleton className="h-16" /><Skeleton className="h-16" /><Skeleton className="h-16" /></div> : existingQuery.isError ? <div className="space-y-3 rounded-lg border border-destructive/40 p-4 sm:col-span-2"><p role="alert" className="text-sm text-destructive">{existingQuery.error.message}</p><Button type="button" variant="outline" onClick={() => void existingQuery.refetch()}>Try again</Button></div> : <>
+        {existingQuery.isPending ? <div className="grid gap-4 sm:col-span-2" role="status" aria-label="Loading daily log"><Skeleton className="h-16" /><Skeleton className="h-16" /><Skeleton className="h-16" /></div> : existingQuery.isError ? <QueryErrorAlert className="sm:col-span-2" title="Unable to load this daily log" message={existingQuery.error.message} retry={() => void existingQuery.refetch()} /> : <>
           {([
             ['caloriesConsumed', 'Calories consumed', 'kcal', '1', '0', '15000'],
             ['proteinGrams', 'Protein consumed', 'g', '0.1', '0', '1000'],
@@ -111,7 +120,7 @@ function TimeZoneAwareLogForm({ timeZone }: { timeZone: string }) {
             ['bodyFatPercentage', 'Body fat (optional)', '%', '0.1', '1', '70'],
           ] as const).map(([key, label, unit, step, minimum, maximum]) => <div key={key} className="grid gap-2"><Label htmlFor={key}>{label}</Label><div className="relative"><Input id={key} inputMode="decimal" type="number" step={step} min={minimum} max={maximum} value={form[key]} onChange={event => set(key, event.target.value)} placeholder="0" className="pr-14" disabled={saveLog.isPending} required={key === 'caloriesConsumed' || key === 'proteinGrams' || key === 'totalCaloriesBurned'} /><span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">{unit}</span></div></div>)}
           <div className="grid gap-2 sm:col-span-2"><Label htmlFor="notes">Notes (optional)</Label><Textarea id="notes" value={form.notes} onChange={event => set('notes', event.target.value)} placeholder="Anything worth remembering about today?" disabled={saveLog.isPending} /></div>
-          <div className="sm:col-span-2"><Button type="submit" size="lg" className="w-full" disabled={isBusy}><Save />{saveLog.isPending ? 'Saving…' : existing ? 'Update daily log' : 'Save daily log'}</Button></div>
+          <div className="sm:col-span-2"><Button type="submit" size="lg" className="w-full" disabled={isBusy}>{saveLog.isPending ? <Spinner aria-hidden="true" /> : <Save aria-hidden="true" />}{saveLog.isPending ? 'Saving…' : existing ? 'Update daily log' : 'Save daily log'}</Button></div>
         </>}
       </form>
     </CardContent></Card>
@@ -119,5 +128,5 @@ function TimeZoneAwareLogForm({ timeZone }: { timeZone: string }) {
 }
 
 function LogPageError({ message, retry }: { message: string; retry: () => void }) {
-  return <><PageHeader eyebrow="Quick entry" title="Log your day" /><Card><CardContent className="space-y-4 text-center"><p role="alert" className="text-sm text-destructive">{message}</p><Button type="button" variant="outline" onClick={retry}>Try again</Button></CardContent></Card></>
+  return <><PageHeader eyebrow="Quick entry" title="Log your day" /><QueryErrorAlert title="Unable to load daily log" message={message} retry={retry} /></>
 }

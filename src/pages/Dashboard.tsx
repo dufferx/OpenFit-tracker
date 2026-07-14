@@ -1,10 +1,13 @@
-import { ArrowDownRight, Flame, Gauge, Percent, Scale, Target, TrendingDown } from 'lucide-react'
+import { ArrowDownRight, ChartNoAxesColumnIncreasing, Flame, Gauge, Percent, Plus, Scale, Target, TrendingDown } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Area, AreaChart, XAxis } from 'recharts'
 import { PageHeader } from '@/components/common/page-header'
+import { QueryErrorAlert } from '@/components/common/query-error-alert'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDailyLogs } from '@/hooks/use-daily-logs'
@@ -93,13 +96,13 @@ function DashboardLoading({ displayName }: { displayName?: string }) {
 }
 
 function DashboardError({ message, retry, displayName }: { message: string; retry: () => void; displayName?: string }) {
-  return <><PageHeader eyebrow="Daily overview" title={`Good evening${displayName ? `, ${displayName}` : ''}`} /><Card><CardContent className="space-y-4 text-center"><p className="text-sm text-destructive" role="alert">{message}</p><Button variant="outline" onClick={retry}>Try again</Button></CardContent></Card></>
+  return <><PageHeader eyebrow="Daily overview" title={`Good evening${displayName ? `, ${displayName}` : ''}`} /><QueryErrorAlert message={message} retry={retry} title="Unable to load dashboard" /></>
 }
 
 function EmptyDashboard() {
-  return <Card><CardContent className="py-10 text-center"><p className="font-medium">No daily logs yet</p><p className="mt-2 text-sm text-muted-foreground">Add your first daily log to start building your dashboard.</p></CardContent></Card>
+  return <Empty className="bg-card py-10 shadow-sm"><EmptyHeader><EmptyMedia variant="icon"><ChartNoAxesColumnIncreasing aria-hidden="true" /></EmptyMedia><EmptyTitle>No daily logs yet</EmptyTitle><EmptyDescription>Add your first daily log to start building your dashboard.</EmptyDescription></EmptyHeader><EmptyContent><Link to="/log" className={buttonVariants()}><Plus aria-hidden="true" />Add daily log</Link></EmptyContent></Empty>
 }
 
 function ChartEmpty({ message }: { message: string }) {
-  return <div className="grid h-60 place-items-center rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">{message}</div>
+  return <Empty className="h-60 gap-3 p-4"><EmptyHeader><EmptyTitle>No weight trend yet</EmptyTitle><EmptyDescription>{message}</EmptyDescription></EmptyHeader></Empty>
 }

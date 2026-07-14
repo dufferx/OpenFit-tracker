@@ -7,6 +7,7 @@ import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
+import { Spinner } from '@/components/ui/spinner'
 import { getBrowserTimeZone, getSupportedTimeZones, isValidTimeZone } from '@/lib/calendar-date'
 import type { Profile, ProfileInput } from '@/types/models'
 
@@ -95,7 +96,7 @@ export function ProfileForm({ profile, suggestedDisplayName, submitLabel, pendin
         <NumberField id="target-body-fat" label="Target body fat (optional)" unit="%" min="1" max="70" step="0.1" disabled={disabled} error={errors.targetBodyFat?.message} registration={register('targetBodyFat')} />
       </div>
     </section>
-    <div className="xl:col-span-2"><Button type="submit" size="lg" className="w-full sm:w-auto" disabled={disabled}>{disabled ? pendingLabel : submitLabel}</Button></div>
+    <div className="xl:col-span-2"><Button type="submit" size="lg" className="w-full sm:w-auto" disabled={disabled}>{disabled && <Spinner aria-hidden="true" />}{disabled ? pendingLabel : submitLabel}</Button></div>
   </form>
 }
 
