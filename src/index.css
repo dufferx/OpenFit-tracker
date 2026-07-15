@@ -93,3 +93,14 @@
   button { cursor: pointer; }
   ::selection { @apply bg-primary/20 text-foreground; }
 }
+
+/* Sileo ships inverted, low-contrast description colors for themed toasts. */
+[data-sileo-viewport] {
+  --sileo-width: min(350px, calc(100vw - 1.5rem));
+  --sileo-state-success: var(--primary);
+  --sileo-state-error: var(--destructive);
+}
+
+[data-sileo-viewport][data-theme] [data-sileo-description] {
+  color: var(--popover-foreground) !important;
+}
