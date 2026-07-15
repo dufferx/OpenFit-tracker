@@ -10,19 +10,31 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'icons.svg'],
+      workbox: {
+        globPatterns: ['**/*.{js,css,html}'],
+        navigateFallback: '/index.html',
+      },
       manifest: {
+        id: '/',
         name: 'OpenFit Tracker',
         short_name: 'OpenFit',
         description: 'A simple daily fitness progress tracker.',
-        theme_color: '#111814',
+        lang: 'en',
+        theme_color: '#1c6b45',
         background_color: '#f5f7f5',
         display: 'standalone',
         start_url: '/',
+        scope: '/',
+        orientation: 'portrait-primary',
+        categories: ['health', 'fitness', 'lifestyle'],
         icons: [
+          { src: '/pwa-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/pwa-512.png', sizes: '512x512', type: 'image/png' },
+          { src: '/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
           { src: '/pwa-192.svg', sizes: '192x192', type: 'image/svg+xml' },
-          { src: '/pwa-512.svg', sizes: '512x512', type: 'image/svg+xml' }
-        ]
+          { src: '/pwa-512.svg', sizes: '512x512', type: 'image/svg+xml' },
+        ],
       }
     })
   ],
