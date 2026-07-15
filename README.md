@@ -33,6 +33,17 @@ npm run preview
 
 The Vite production build writes to `dist/`. Missing `VITE_SUPABASE_URL` or `VITE_SUPABASE_PUBLISHABLE_KEY` is handled by a clear in-app configuration error; no real environment values are committed or emitted by the build.
 
+## Tests
+
+```bash
+npm run test
+npm run test:watch
+```
+
+The focused Vitest suite covers profile-timezone calendar behavior, dashboard/progress calculations, daily-log form normalization, profile completeness, chart transformations, and unexpected-render error fallback behavior. Tests use synthetic data and jsdom; they never connect to Supabase or require credentials.
+
+Route pages are loaded on demand with `React.lazy`. Authentication/profile guards and the authenticated application shell stay eager so protected-route redirects remain stable. A global error boundary and an authenticated content boundary provide non-sensitive retry/recovery UI for unexpected render failures; normal Supabase failures continue through the existing query and form error handling.
+
 ## Connect Supabase
 
 1. Create a Supabase project.
@@ -150,7 +161,8 @@ Progress uses profile-timezone calendar ranges for the last 7, 30, and 90 days. 
 
 ## Next development milestone
 
-- Add automated tests
+- Add focused end-to-end coverage against a dedicated non-production Supabase test project.
+- Evaluate privacy-safe production error monitoring without capturing fitness data, notes, emails, tokens, keys, or request bodies.
 
 
 ## UI system

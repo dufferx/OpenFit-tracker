@@ -4,7 +4,6 @@ import { CalendarIcon, Save } from 'lucide-react'
 import { Controller, useForm, useWatch, type FieldError as HookFormFieldError, type UseFormRegisterReturn } from 'react-hook-form'
 import { sileo } from 'sileo'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { z } from 'zod'
 import { PageHeader } from '@/components/common/page-header'
 import { QueryErrorAlert } from '@/components/common/query-error-alert'
 import { Button } from '@/components/ui/button'
@@ -20,52 +19,8 @@ import { useDailyLogByDate, useUpsertDailyLog } from '@/hooks/use-daily-logs'
 import { useProfile } from '@/hooks/use-profile'
 import { formatCalendarDate, isCalendarDate, isFutureCalendarDate, parseCalendarDate, todayInTimeZone } from '@/lib/calendar-date'
 import { getErrorMessage } from '@/lib/errors'
+import { dailyLogFormDefaults, dailyLogSchema, type DailyLogFormValues, type ValidatedDailyLogFormValues } from '@/lib/daily-log-form'
 import { isProfileComplete } from '@/lib/profiles'
-import type { DailyLog, DailyLogInput } from '@/types/models'
-
-const requiredNumber = (label: string, maximum: number) => z.string()
-  .refine(value => value.trim() !== '', `${label} is required.`)
-  .refine(value => Number.isFinite(Number(value)), `${label} is required.`)
-  .refine(value => Number(value) >= 0 && Number(value) <= maximum, `${label} must be between 0 and ${maximum}.`)
-
-const optionalNumber = (label: string, minimum: number, maximum: number) => z.string()
-  .refine(value => value.trim() === '' || Number.isFinite(Number(value)), `${label} must be between ${minimum} and ${maximum}.`)
-  .refine(value => value.trim() === '' || (Number(value) >= minimum && Number(value) <= maximum), `${label} must be between ${minimum} and ${maximum}.`)
-
-function dailyLogSchema(timeZone: string) {
-  return z.object({
-    logDate: z.string().refine(isCalendarDate, 'Select a valid date.').refine(value => !isFutureCalendarDate(value, timeZone), `Daily logs cannot be created after today in ${timeZone}.`),
-    caloriesConsumed: requiredNumber('Calories consumed', 15000),
-    proteinGrams: requiredNumber('Protein', 1000),
-    totalCaloriesBurned: requiredNumber('Calories burned', 15000),
-    weightKg: optionalNumber('Weight', 20, 400),
-    bodyFatPercentage: optionalNumber('Body fat', 1, 70),
-    notes: z.string(),
-  }).transform(values => ({
-    logDate: values.logDate,
-    caloriesConsumed: Number(values.caloriesConsumed),
-    proteinGrams: Number(values.proteinGrams),
-    totalCaloriesBurned: Number(values.totalCaloriesBurned),
-    weightKg: values.weightKg.trim() === '' ? null : Number(values.weightKg),
-    bodyFatPercentage: values.bodyFatPercentage.trim() === '' ? null : Number(values.bodyFatPercentage),
-    notes: values.notes.trim() || null,
-  } satisfies DailyLogInput))
-}
-
-type DailyLogFormValues = z.input<ReturnType<typeof dailyLogSchema>>
-type ValidatedDailyLogFormValues = z.output<ReturnType<typeof dailyLogSchema>>
-
-function formDefaults(logDate: string, existing?: DailyLog | null): DailyLogFormValues {
-  return {
-    logDate,
-    caloriesConsumed: existing?.caloriesConsumed.toString() ?? '',
-    proteinGrams: existing?.proteinGrams.toString() ?? '',
-    totalCaloriesBurned: existing?.totalCaloriesBurned.toString() ?? '',
-    weightKg: existing?.weightKg?.toString() ?? '',
-    bodyFatPercentage: existing?.bodyFatPercentage?.toString() ?? '',
-    notes: existing?.notes ?? '',
-  }
-}
 
 export function LogPage() {
   const profileQuery = useProfile()
@@ -86,7 +41,7 @@ function TimeZoneAwareLogForm({ timeZone }: { timeZone: string }) {
   const schema = dailyLogSchema(timeZone)
   const { control, register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<DailyLogFormValues, unknown, ValidatedDailyLogFormValues>({
     resolver: zodResolver(schema),
-    defaultValues: formDefaults(initialDate),
+    defaultValues: dailyLogFormDefaults(initialDate),
   })
   const date = useWatch({ control, name: 'logDate' })
   const existingQuery = useDailyLogByDate(date)
@@ -94,7 +49,7 @@ function TimeZoneAwareLogForm({ timeZone }: { timeZone: string }) {
   const existing = existingQuery.data
   const saveInFlight = useRef(false)
 
-  useEffect(() => reset(formDefaults(date, existing)), [date, existing, reset])
+  useEffect(() => reset(dailyLogFormDefaults(date, existing)), [date, existing, reset])
 
   const submit = handleSubmit(async input => {
     if (saveInFlight.current) return
