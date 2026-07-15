@@ -3,6 +3,7 @@ import { ChartNoAxesColumnIncreasing, Plus } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ReferenceLine, XAxis, YAxis } from 'recharts'
 import { PageHeader } from '@/components/common/page-header'
+import { ExportDrawer } from '@/components/export/export-drawer'
 import { QueryErrorAlert } from '@/components/common/query-error-alert'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -71,7 +72,7 @@ export function Progress() {
   if (logsQuery.isError) return <><PageHeader eyebrow="Trends" title="Progress" />{rangeControl}<QueryError message={logsQuery.error.message} retry={() => void logsQuery.refetch()} /></>
 
   return <>
-    <PageHeader eyebrow="Trends" title="Progress" description="Focus on trends, not single-day fluctuations." />
+    <PageHeader eyebrow="Trends" title="Progress" description="Focus on trends, not single-day fluctuations." action={<ExportDrawer profile={profile} progressRange={range} />} />
     {rangeControl}
     {range === 'all' && <p className="mb-5 text-xs text-muted-foreground">All time shows up to the 1,000 most recent daily logs available from Supabase.</p>}
     {logs.length === 0 ? <Empty className="bg-card py-10 shadow-sm"><EmptyHeader><EmptyMedia variant="icon"><ChartNoAxesColumnIncreasing aria-hidden="true" /></EmptyMedia><EmptyTitle>No logs in this date range</EmptyTitle><EmptyDescription>Choose another range or add a daily log.</EmptyDescription></EmptyHeader><EmptyContent><Link to="/log" className={buttonVariants()}><Plus aria-hidden="true" />Add daily log</Link></EmptyContent></Empty> : <div className="grid gap-5 xl:grid-cols-2">

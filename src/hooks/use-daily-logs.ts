@@ -9,6 +9,7 @@ import {
   updateDailyLog,
   upsertDailyLog,
 } from '@/lib/daily-logs'
+import { fetchDailyLogsForExport } from '@/lib/export-query'
 import type { InclusiveDateRange } from '@/lib/calendar-date'
 import type { ProgressRange } from '@/lib/progress-data'
 import type { DailyLogInput } from '@/types/models'
@@ -19,6 +20,16 @@ export const dailyLogKeys = {
   allTime: (userId: string) => [...dailyLogKeys.user(userId), 'all'] as const,
   range: (userId: string, from: string, to: string) => [...dailyLogKeys.user(userId), 'range', from, to] as const,
   date: (userId: string, logDate: string) => [...dailyLogKeys.user(userId), 'date', logDate] as const,
+  export: (userId: string, from: string | null, to: string) => [...dailyLogKeys.user(userId), 'export', from ?? 'all', to] as const,
+}
+
+export function useExportDailyLogs(from: string | null, to: string, enabled = true) {
+  const { user, isLoading: isAuthLoading } = useAuth()
+  return useQuery({
+    queryKey: dailyLogKeys.export(user?.id ?? 'signed-out', from, to),
+    queryFn: () => fetchDailyLogsForExport(from, to),
+    enabled: enabled && !isAuthLoading && Boolean(user) && Boolean(to),
+  })
 }
 
 export function useDailyLogs() {

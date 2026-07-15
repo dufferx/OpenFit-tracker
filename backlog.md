@@ -1,5 +1,15 @@
 # Bugs and enhancements
 
+## ENH-002 — Export private data and progress reports
+
+- Type: `enhancement`
+- Priority: `P1`
+- Status: `done`
+- Completed: Added an authenticated, client-driven Progress Drawer with active-range prefilling, inclusive profile-timezone ranges, complete paginated current-user data retrieval, protected CSV, versioned JSON backup, lazily generated vector/text PDF reports, preview and privacy states, and focused tests.
+- Supported formats: CSV for analysis, JSON schema version 1 for backup/future import compatibility, and PDF for personal archiving or coach sharing.
+- Privacy boundary: downloads remain on-device; no public links, storage uploads, external report services, auth data, or internal record/user IDs.
+- Current limitation: profile-only backups and import/restore are not implemented; large PDF reports summarize charts and the visible records table while CSV/JSON retain all selected records.
+
 ## BUG-001 — Make Sileo toast descriptions readable in dark mode
 
 - Type: `bug`
