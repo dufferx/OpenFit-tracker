@@ -147,6 +147,16 @@ Profile targets and theme preference are loaded from `public.profiles`. The remo
 
 Progress uses profile-timezone calendar ranges for the last 7, 30, and 90 days. The All time view reuses the current-user daily-log query and displays the 1,000 most recent records at most, matching the Supabase Data API `max_rows` limit in `supabase/config.toml`. Pagination is intentionally deferred for the MVP, so an account with more than 1,000 logs should not treat this view as a complete lifetime history.
 
+## Data exports and progress reports
+
+Authenticated users can open **Export** from Progress to configure a download in a bottom Drawer. The Drawer starts with the active Progress range while keeping its choices independent from the charts behind it. Export date boundaries are inclusive calendar dates in the profile timezone. Available ranges are the last 7, 30, or 90 days, current month, all time, and a validated custom range. Future dates are excluded.
+
+- CSV contains `date`, `calories_consumed`, `protein_grams`, `total_calories_burned`, `estimated_balance`, `weight_kg`, `body_fat_percentage`, and `notes`. It uses UTF-8 without a BOM, CRLF record endings, standards-compatible quoting, and formula-injection protection for notes. Null optional values remain empty cells and numeric zeroes remain zero.
+- JSON is a readable, versioned backup with `schemaVersion: 1`, export time, timezone, profile targets, calculated summary, and selected-range logs. It excludes user/database IDs and auth data. Record creation/update timestamps are retained to support future restore conflict decisions; import/restore is not implemented.
+- PDF is a selectable-text, multi-page progress report with targets, period summary, available weight/body-fat trends, calories consumed versus burned, protein versus target, and a compact daily-record section. Large ranges show the 30 most recent records in the table and charts use at most 30 evenly sampled records, while CSV and JSON still contain every selected record.
+
+Downloads are generated client-side with Blob URLs, are not uploaded to Supabase Storage, and are not sent to an external reporting service. All-time export uses a dedicated authenticated, owner-filtered query in 500-record pages so it is not subject to the normal Progress view's 1,000-row presentation limit. Downloaded files contain private fitness information and should be stored and shared carefully. Browser and installed-PWA download support still depends on the browser allowing normal file downloads.
+
 ## Included
 
 - Responsive dashboard
@@ -158,6 +168,7 @@ Progress uses profile-timezone calendar ranges for the last 7, 30, and 90 days. 
 - PWA manifest and service worker
 - Supabase SQL schema with Row Level Security
 - Supabase-backed daily-log persistence
+- Private CSV/JSON exports and PDF progress reports
 
 ## Next development milestone
 
