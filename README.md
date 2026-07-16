@@ -164,11 +164,21 @@ Downloads are generated client-side with Blob URLs, are not uploaded to Supabase
 - Edit and delete history
 - Weight, body-fat, calorie, and protein charts
 - Personal targets and preferences
+- Primary navigation for Home, Progress, Log, History, and a temporary Gym League placeholder
+- Account Drawer access to Settings and confirmed sign-out
 - Sileo toast notifications
 - PWA manifest and service worker
 - Supabase SQL schema with Row Level Security
 - Supabase-backed daily-log persistence
 - Private CSV/JSON exports and PDF progress reports
+
+## Authenticated navigation
+
+The authenticated shell uses one shared primary navigation definition: Home, Progress, Log, History, and Gym League. Settings remains a protected lazy route at `/settings`, but it is accessed through the account Drawer rather than the primary desktop sidebar or mobile bottom navigation. Gym League uses the Lucide `Trophy` icon to communicate friendly ranking and competition without money or gambling semantics.
+
+The account control occupies the previous sign-out control position. It opens a Drawer with the current identity, a Settings action, and a Sign out action. Sign out requires an Alert Dialog confirmation before the existing Supabase sign-out flow runs.
+
+`/gym-league` is a temporary authenticated placeholder for private attendance competitions between friends. The real Gym League implementation remains deferred to `feat/gym-league`; no league data model, migration, invitation, attendance, leaderboard, notification, or voting behavior is included in this branch.
 
 ## Next development milestone
 

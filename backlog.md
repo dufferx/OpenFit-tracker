@@ -1,5 +1,13 @@
 # Bugs and enhancements
 
+## ENH-003 — Prepare navigation and account access for Gym League
+
+- Type: `enhancement`
+- Priority: `P1`
+- Status: `done`
+- Completed: Primary authenticated navigation now uses Home, Progress, Log, History, and Gym League from a shared configuration. Settings remains protected at `/settings` and is available through the account Drawer. Direct sign-out was replaced with Drawer access plus an Alert Dialog confirmation that prevents duplicate pending submission. `/gym-league` renders a product-consistent placeholder only.
+- Deferred: real Gym League league creation, membership, invitations, seasons, attendance, leaderboards, disputes, voting, notifications, avatars, database migrations, and RLS remain deferred to `feat/gym-league`.
+
 ## ENH-002 — Export private data and progress reports
 
 - Type: `enhancement`

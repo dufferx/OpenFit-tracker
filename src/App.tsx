@@ -15,6 +15,7 @@ import { supabaseConfigurationError } from '@/lib/supabase'
 const Dashboard = lazy(() => import('@/pages/Dashboard').then(module => ({ default: module.Dashboard })))
 const AuthCallback = lazy(() => import('@/pages/AuthCallback').then(module => ({ default: module.AuthCallback })))
 const ForgotPassword = lazy(() => import('@/pages/ForgotPassword').then(module => ({ default: module.ForgotPassword })))
+const GymLeaguePage = lazy(() => import('@/pages/GymLeague').then(module => ({ default: module.GymLeaguePage })))
 const LogPage = lazy(() => import('@/pages/LogPage').then(module => ({ default: module.LogPage })))
 const Login = lazy(() => import('@/pages/Login').then(module => ({ default: module.Login })))
 const Onboarding = lazy(() => import('@/pages/Onboarding').then(module => ({ default: module.Onboarding })))
@@ -61,6 +62,7 @@ export default function App() {
           <Route element={<Layout />}>
             <Route index element={<LazyRoute component={Dashboard} label="Loading dashboard" />} />
             <Route path="log" element={<LazyRoute component={LogPage} label="Loading daily log" />} />
+            <Route path="gym-league" element={<LazyRoute component={GymLeaguePage} label="Loading Gym League" />} />
             <Route path="progress" element={<LazyRoute component={Progress} label="Loading progress" />} />
             <Route path="history" element={<LazyRoute component={History} label="Loading history" />} />
             <Route path="settings" element={<LazyRoute component={SettingsPage} label="Loading settings" />} />
